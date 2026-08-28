@@ -1,0 +1,62 @@
+import CelebrationCard from "./CelebrationCard";
+
+export default function Celebrations() {
+  return (
+    <section className="mx-auto max-w-7xl px-8 py-24">
+
+      <div className="mb-16 text-center">
+
+        <p className="font-semibold uppercase tracking-[0.3em] text-orange-500">
+          Browse by Celebration
+        </p>
+
+        <h2 className="mt-4 text-5xl font-bold text-slate-900">
+          Every moment deserves
+          the perfect team.
+        </h2>
+
+      </div>
+
+      <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+
+        <CelebrationCard
+          title="Weddings"
+          vendors="1,240"
+          image="https://images.unsplash.com/photo-1519741497674-611481863552?w=900"
+        />
+
+        <CelebrationCard
+          title="Birthdays"
+          vendors="875"
+          image="https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=900"
+        />
+
+        <CelebrationCard
+          title="Baby Showers"
+          vendors="420"
+          image="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=900"
+        />
+
+        <CelebrationCard
+          title="Corporate"
+          vendors="640"
+          image="https://images.unsplash.com/photo-1511578314322-379afb476865?w=900"
+        />
+
+        <CelebrationCard
+          title="Christmas"
+          vendors="510"
+          image="https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=900"
+        />
+
+        <CelebrationCard
+          title="Anniversaries"
+          vendors="310"
+          image="https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=900"
+        />
+
+      </div>
+
+    </section>
+  );
+}

@@ -1,29 +1,45 @@
-export default function SearchBar() {
+type SearchBarProps = {
+  celebration: string;
+  setCelebration: (value: string) => void;
+};
+
+export default function SearchBar({
+  celebration,
+  setCelebration,
+}: SearchBarProps) {
   return (
-    <div className="mx-auto mt-12 flex max-w-5xl flex-wrap items-center justify-center gap-4 rounded-2xl bg-white p-6 shadow-xl">
+    <div className="mx-auto max-w-6xl rounded-3xl bg-white p-6 shadow-2xl">
 
-      <select className="rounded-xl border border-gray-300 px-4 py-3 text-slate-700">
-        <option>Service</option>
-        <option>Cakes</option>
-        <option>Photographer</option>
-        <option>DJ</option>
-        <option>Venue</option>
-      </select>
+      <div className="grid gap-4 md:grid-cols-4">
 
-      <input
-        type="text"
-        placeholder="Location"
-        className="rounded-xl border border-gray-300 px-4 py-3"
-      />
+        <select
+          value={celebration}
+          onChange={(e) => setCelebration(e.target.value)}
+          className="rounded-2xl border px-5 py-4"
+        >
+          <option>Wedding</option>
+          <option>Birthday</option>
+          <option>Eid</option>
+          <option>Diwali</option>
+          <option>Graduation</option>
+          <option>Corporate</option>
+        </select>
 
-      <input
-        type="date"
-        className="rounded-xl border border-gray-300 px-4 py-3"
-      />
+        <input
+          placeholder="Location"
+          className="rounded-2xl border px-5 py-4"
+        />
 
-      <button className="rounded-xl bg-orange-500 px-8 py-3 font-semibold text-white hover:bg-orange-600 transition">
-        Search
-      </button>
+        <input
+          type="date"
+          className="rounded-2xl border px-5 py-4"
+        />
+
+        <button className="rounded-2xl bg-orange-500 px-5 py-4 font-bold text-white hover:bg-orange-600">
+          Start Planning
+        </button>
+
+      </div>
 
     </div>
   );

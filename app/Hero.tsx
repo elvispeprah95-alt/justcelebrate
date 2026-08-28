@@ -1,26 +1,46 @@
 import SearchBar from "./SearchBar";
 
-export default function Hero() {
-  return (
-    <section className="bg-gradient-to-b from-slate-50 to-white">
-      <div className="mx-auto max-w-7xl px-8 py-28 text-center">
+type HeroProps = {
+  celebration: string;
+  setCelebration: (value: string) => void;
+};
 
-        <p className="mb-6 text-sm font-bold uppercase tracking-[0.4em] text-orange-500">
-          EVERY REASON. EVERY DETAIL. ONE HAPPY PLACE.
+const headings: Record<string, string> = {
+  Wedding: "Every wedding deserves something unforgettable.",
+  Birthday: "Let's plan an unforgettable birthday.",
+  Eid: "Celebrate together with trusted local businesses.",
+  Diwali: "Bring light, colour and joy to your celebration.",
+  Graduation: "Celebrate an incredible achievement.",
+  Corporate: "Create an event your guests will remember.",
+};
+
+export default function Hero({
+  celebration,
+  setCelebration,
+}: HeroProps) {
+  return (
+    <section className="relative overflow-hidden bg-gradient-to-br from-orange-50 via-white to-amber-50">
+
+      <div className="mx-auto flex min-h-[80vh] max-w-7xl flex-col items-center justify-center px-8 text-center">
+
+        <p className="mb-6 rounded-full bg-orange-100 px-5 py-2 text-sm font-semibold uppercase tracking-[0.3em] text-orange-600">
+          Every Celebration Starts Here
         </p>
 
-        <h1 className="mx-auto mb-8 max-w-4xl text-6xl font-extrabold leading-tight text-slate-900">
-          Find brilliant local vendors
-          <br />
-          for every celebration.
+        <h1 className="max-w-5xl text-6xl font-extrabold leading-tight text-slate-900">
+          {headings[celebration]}
         </h1>
 
-        <p className="mx-auto mb-12 max-w-2xl text-xl text-slate-600">
-          Compare trusted businesses, read reviews and send one enquiry
-          to multiple vendors in seconds.
+        <p className="mt-8 max-w-2xl text-xl text-slate-600">
+          Find trusted local businesses and inspiration for every celebration.
         </p>
 
-        <SearchBar />
+        <div className="mt-12 w-full">
+          <SearchBar
+            celebration={celebration}
+            setCelebration={setCelebration}
+          />
+        </div>
 
       </div>
     </section>
