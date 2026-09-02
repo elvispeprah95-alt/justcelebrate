@@ -20,18 +20,17 @@ export default function Header() {
     setLoading(true);
     setMessage("");
 
-   const { error } = await supabase.auth.signInWithOtp({
-  email: email.trim(),
-  options: {
-    emailRedirectTo: `${window.location.origin}/set-password`,
-  },
-});
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        emailRedirectTo: `${window.location.origin}/set-password`,
+      },
+    });
+
     if (error) {
       setMessage("We couldn't send your login link. Please try again.");
     } else {
-      setMessage(
-        "Check your email. We've sent you a secure sign-in link."
-      );
+      setMessage("Check your email. We've sent you a secure sign-in link.");
     }
 
     setLoading(false);
@@ -50,15 +49,12 @@ export default function Header() {
             <a href="#" className="transition hover:text-orange-500">
               Home
             </a>
-
             <a href="#vendors" className="transition hover:text-orange-500">
               Vendors
             </a>
-
-            <a href="#vendors" className="transition hover:text-orange-500">
+            <a href="#services" className="transition hover:text-orange-500">
               Categories
             </a>
-
             <a href="#" className="transition hover:text-orange-500">
               About
             </a>
@@ -70,9 +66,9 @@ export default function Header() {
                 setMessage("");
                 setShowLogin(true);
               }}
-              className="rounded-full px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-gray-100"
+              className="hidden rounded-full bg-orange-500 px-6 py-2 text-sm font-semibold text-white hover:bg-orange-600 sm:block"
             >
-              Login
+              List your business
             </button>
 
             <button
@@ -80,9 +76,9 @@ export default function Header() {
                 setMessage("");
                 setShowLogin(true);
               }}
-              className="rounded-full bg-orange-500 px-6 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+              className="rounded-full px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-gray-100"
             >
-              Join Free
+              Vendor login
             </button>
           </div>
         </div>
@@ -102,14 +98,12 @@ export default function Header() {
             <p className="mb-2 text-sm font-bold uppercase tracking-[0.25em] text-orange-500">
               Just Celebrate
             </p>
-
             <h2 className="text-3xl font-extrabold text-slate-900">
               Login in seconds
             </h2>
-
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              Enter your email and we'll send you a secure sign-in link.
-              No password needed.
+              Enter your email and we'll send you a secure sign-in link. No
+              password needed.
             </p>
 
             <form onSubmit={handleLogin} className="mt-6 space-y-4">
@@ -122,7 +116,6 @@ export default function Header() {
                 required
                 className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-orange-400"
               />
-
               <button
                 type="submit"
                 disabled={loading}
@@ -139,7 +132,7 @@ export default function Header() {
             )}
 
             <p className="mt-5 text-center text-xs text-slate-500">
-              Customers and vendors can use the same simple login.
+              Vendors can use this secure login to access their account.
             </p>
           </div>
         </div>
