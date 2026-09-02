@@ -1,42 +1,150 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+import { supabase } from "./supabase";
+
 export default function Header() {
+  const [showLogin, setShowLogin] = useState(false);
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!email.trim()) {
+      setMessage("Please enter your email address.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        emailRedirectTo: window.location.origin,
+      },
+    });
+
+    if (error) {
+      setMessage("We couldn't send your login link. Please try again.");
+    } else {
+      setMessage(
+        "Check your email. We've sent you a secure sign-in link."
+      );
+    }
+
+    setLoading(false);
+  }
+
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-8 py-6">
+    <>
+      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-8 py-6">
+          <div className="text-4xl font-extrabold tracking-tight">
+            <span className="text-orange-500">Just</span>
+            <span className="text-slate-900">Celebrate</span>
+          </div>
 
-        <div className="text-4xl font-extrabold tracking-tight">
-          <span className="text-orange-500">Just</span>
-          <span className="text-slate-900">Celebrate</span>
+          <nav className="hidden gap-8 text-base font-semibold text-slate-700 md:flex">
+            <a href="#" className="transition hover:text-orange-500">
+              Home
+            </a>
+
+            <a href="#vendors" className="transition hover:text-orange-500">
+              Vendors
+            </a>
+
+            <a href="#vendors" className="transition hover:text-orange-500">
+              Categories
+            </a>
+
+            <a href="#" className="transition hover:text-orange-500">
+              About
+            </a>
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setMessage("");
+                setShowLogin(true);
+              }}
+              className="rounded-full px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-gray-100"
+            >
+              Login
+            </button>
+
+            <button
+              onClick={() => {
+                setMessage("");
+                setShowLogin(true);
+              }}
+              className="rounded-full bg-orange-500 px-6 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+            >
+              Join Free
+            </button>
+          </div>
         </div>
+      </header>
 
-        <nav className="hidden gap-8 text-base font-semibold text-slate-700 md:flex">
-          <a href="#" className="hover:text-orange-500 transition">
-            Home
-          </a>
+      {showLogin && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+            <button
+              onClick={() => setShowLogin(false)}
+              className="absolute right-5 top-4 text-2xl text-slate-400 hover:text-slate-700"
+              aria-label="Close login"
+            >
+              ×
+            </button>
 
-          <a href="#" className="hover:text-orange-500 transition">
-            Vendors
-          </a>
+            <p className="mb-2 text-sm font-bold uppercase tracking-[0.25em] text-orange-500">
+              Just Celebrate
+            </p>
 
-          <a href="#" className="hover:text-orange-500 transition">
-            Categories
-          </a>
+            <h2 className="text-3xl font-extrabold text-slate-900">
+              Login in seconds
+            </h2>
 
-          <a href="#" className="hover:text-orange-500 transition">
-            About
-          </a>
-        </nav>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              Enter your email and we'll send you a secure sign-in link.
+              No password needed.
+            </p>
 
-        <div className="flex items-center gap-3">
-          <button className="rounded-full px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-gray-100">
-            Login
-          </button>
+            <form onSubmit={handleLogin} className="mt-6 space-y-4">
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="Your email address"
+                autoComplete="email"
+                required
+                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-orange-400"
+              />
 
-          <button className="rounded-full bg-orange-500 px-6 py-2 text-sm font-semibold text-white hover:bg-orange-600">
-            Join Free
-          </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl bg-orange-500 px-5 py-3 font-semibold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? "Sending link..." : "Email me a login link"}
+              </button>
+            </form>
+
+            {message && (
+              <div className="mt-5 rounded-xl bg-orange-50 p-4 text-sm font-medium text-slate-700">
+                {message}
+              </div>
+            )}
+
+            <p className="mt-5 text-center text-xs text-slate-500">
+              Customers and vendors can use the same simple login.
+            </p>
+          </div>
         </div>
-
-      </div>
-    </header>
+      )}
+    </>
   );
 }
