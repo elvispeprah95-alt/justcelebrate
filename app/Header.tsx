@@ -66,16 +66,6 @@ export default function Header() {
                 setMessage("");
                 setShowLogin(true);
               }}
-              className="hidden rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-gray-100 lg:block"
-            >
-              Customer login
-            </button>
-
-            <button
-              onClick={() => {
-                setMessage("");
-                setShowLogin(true);
-              }}
               className="hidden rounded-full bg-orange-500 px-6 py-2 text-sm font-semibold text-white hover:bg-orange-600 sm:block"
             >
               List your business
