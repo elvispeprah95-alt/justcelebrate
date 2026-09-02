@@ -15,7 +15,8 @@ type Vendor = {
   email: string;
 };
 
-const VENDORS_API = "https://azcdjuxvmdfjthngkhyn.supabase.co/functions/v1/public-vendors";
+const SUPABASE_URL = "https://azcdjuxvmdfjthngkhyn.supabase.co";
+const SUPABASE_KEY = "sb_publishable_2k0t5-NrHs0gKOipeNod0Q_NMmF7yCJ";
 
 const categories = ["All", "Photographers", "Photo Booths", "Caterers", "Venues", "DJs"];
 
@@ -29,7 +30,17 @@ export default function VendorDirectory() {
   useEffect(() => {
     async function loadVendors() {
       try {
-        const response = await fetch(VENDORS_API, { cache: "no-store" });
+        const response = await fetch(
+          `${SUPABASE_URL}/rest/v1/vendor_profiles?status=eq.approved&select=id,business_name,category,description,phone,website,town,coverage_areas,services,email&order=business_name.asc&limit=1000`,
+          {
+            cache: "no-store",
+            headers: {
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`,
+            },
+          }
+        );
+
         if (!response.ok) throw new Error("Could not load vendors");
         const data = (await response.json()) as Vendor[];
         setVendors(data);
