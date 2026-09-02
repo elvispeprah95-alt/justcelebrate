@@ -1,5 +1,6 @@
 import Header from "./Header";
 import Hero from "./Hero";
+import ServiceCategories from "./ServiceCategories";
 import VendorDirectory from "./VendorDirectory";
 
 export default function Home() {
@@ -7,6 +8,7 @@ export default function Home() {
     <>
       <Header />
       <Hero />
+      <ServiceCategories />
       <VendorDirectory />
     </>
   );
