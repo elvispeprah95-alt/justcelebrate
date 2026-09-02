@@ -15,8 +15,7 @@ type Vendor = {
   email: string;
 };
 
-const SUPABASE_URL = "https://hohddtjiapyjztrskcaz.supabase.co";
-const SUPABASE_KEY = "sb_publishable_nKZ3DnE9IDgKLMQFhVh1Jg_KST0Ebhf";
+const VENDORS_API = "https://azcdjuxvmdfjthngkhyn.supabase.co/functions/v1/public-vendors";
 
 const categories = ["All", "Photographers", "Photo Booths", "Caterers", "Venues", "DJs"];
 
@@ -30,16 +29,7 @@ export default function VendorDirectory() {
   useEffect(() => {
     async function loadVendors() {
       try {
-        const response = await fetch(
-          `${SUPABASE_URL}/rest/v1/vendor_profiles?status=eq.approved&select=id,business_name,category,description,phone,website,town,coverage_areas,services,email&order=business_name.asc`,
-          {
-            headers: {
-              apikey: SUPABASE_KEY,
-              Authorization: `Bearer ${SUPABASE_KEY}`,
-            },
-          }
-        );
-
+        const response = await fetch(VENDORS_API, { cache: "no-store" });
         if (!response.ok) throw new Error("Could not load vendors");
         const data = (await response.json()) as Vendor[];
         setVendors(data);
@@ -59,8 +49,8 @@ export default function VendorDirectory() {
       const categoryMatch = category === "All" || vendor.category === category;
       const locationMatch =
         !q ||
-        vendor.town.toLowerCase().includes(q) ||
-        vendor.coverage_areas.toLowerCase().includes(q);
+        (vendor.town || "").toLowerCase().includes(q) ||
+        (vendor.coverage_areas || "").toLowerCase().includes(q);
       return categoryMatch && locationMatch;
     });
   }, [vendors, category, location]);
