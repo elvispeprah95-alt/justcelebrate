@@ -15,8 +15,8 @@ type Vendor = {
   email: string;
 };
 
-const SUPABASE_URL = "https://azcdjuxvmdfjthngkhyn.supabase.co";
-const SUPABASE_KEY = "sb_publishable_2k0t5-NrHs0gKOipeNod0Q_NMmF7yCJ";
+const SUPABASE_URL = "https://hohddtjiapyjztrskcaz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_nKZ3DnE9IDgKLMQFhVh1Jg_KST0Ebhf";
 
 const categories = ["All", "Photographers", "Photo Booths", "Caterers", "Venues", "DJs"];
 
