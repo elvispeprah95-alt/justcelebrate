@@ -20,13 +20,12 @@ export default function Header() {
     setLoading(true);
     setMessage("");
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        emailRedirectTo: window.location.origin,
-      },
-    });
-
+   const { error } = await supabase.auth.signInWithOtp({
+  email: email.trim(),
+  options: {
+    emailRedirectTo: `${window.location.origin}/set-password`,
+  },
+});
     if (error) {
       setMessage("We couldn't send your login link. Please try again.");
     } else {
