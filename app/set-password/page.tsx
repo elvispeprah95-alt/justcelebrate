@@ -1,9 +1,11 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "../supabase";
 
 export default function SetPasswordPage() {
+  const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,7 +64,7 @@ export default function SetPasswordPage() {
     setMessage("Your account is ready. Taking you to your messages...");
 
     setTimeout(() => {
-      window.location.href = "/messages";
+      router.push("/messages");
     }, 1000);
   }
 

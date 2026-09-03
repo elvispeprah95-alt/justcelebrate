@@ -1,13 +1,32 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "./supabase";
 
 export default function Header() {
+  const router = useRouter();
   const [showLogin, setShowLogin] = useState(false);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    async function continueLogin() {
+      const destination = localStorage.getItem("just-celebrate-post-auth");
+      if (destination !== "messages" && destination !== "admin") return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      localStorage.removeItem("just-celebrate-post-auth");
+      router.push(destination === "admin" ? "/admin" : "/messages");
+    }
+
+    void continueLogin();
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => void continueLogin(), 0);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, [router]);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -19,15 +38,19 @@ export default function Header() {
 
     setLoading(true);
     setMessage("");
+    localStorage.setItem("just-celebrate-post-auth", "messages");
 
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
-        emailRedirectTo: `${window.location.origin}/set-password`,
+        emailRedirectTo: window.location.origin,
+        shouldCreateUser: true,
+        data: { account_type: "vendor" },
       },
     });
 
     if (error) {
+      localStorage.removeItem("just-celebrate-post-auth");
       setMessage("We couldn't send your login link. Please try again.");
     } else {
       setMessage("Check your email. We've sent you a secure sign-in link.");
@@ -99,11 +122,10 @@ export default function Header() {
               Just Celebrate
             </p>
             <h2 className="text-3xl font-extrabold text-slate-900">
-              Login in seconds
+              Vendor login
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              Enter your email and we'll send you a secure sign-in link. No
-              password needed.
+              Enter your business email and we’ll send you a secure sign-in link. No password needed.
             </p>
 
             <form onSubmit={handleLogin} className="mt-6 space-y-4">
