@@ -7,7 +7,7 @@ import { supabase } from "../../supabase";
 type Tab = "analytics" | "claims" | "enquiries" | "users" | "reviews" | "notifications" | "activity" | "settings";
 type Profile = { id: string; display_name: string; email: string | null; account_type: string; account_status: string; created_at: string };
 type Conversation = { id: string; customer_id: string; vendor_name: string | null; vendor_email: string | null; subject: string; status: string; last_message_at: string; created_at: string };
-type Claim = { id: string; vendor_name: string; claimant_email: string; evidence: string; status: string; review_note: string; created_at: string };
+type Claim = { id: string; external_vendor_id: string; vendor_name: string; claimant_email: string; evidence: string; status: string; review_note: string; created_at: string };
 type Review = { id: string; vendor_name: string; rating: number; body: string; report_reason: string; status: string; created_at: string };
 type Activity = { id: string; action: string; entity_type: string; entity_id: string; details: Record<string, unknown>; created_at: string };
 type Settings = { homepage: { announcement: string; show_announcement: boolean }; notifications: { reply_reminder_hours: number; email_admin_for_claims: boolean; email_admin_for_reviews: boolean }; marketplace: { claims_enabled: boolean; reviews_enabled: boolean; featured_vendor_limit: number } };
@@ -53,7 +53,7 @@ export default function AdminControlCentre() {
       supabase.from("profiles").select("id,display_name,email,account_type,account_status,created_at").order("created_at", { ascending: false }),
       supabase.from("conversations").select("id,customer_id,vendor_name,vendor_email,subject,status,last_message_at,created_at").order("last_message_at", { ascending: false }),
       supabase.from("messages").select("id", { count: "exact", head: true }),
-      supabase.from("vendor_claims").select("id,vendor_name,claimant_email,evidence,status,review_note,created_at").order("created_at", { ascending: false }),
+      supabase.from("vendor_claims").select("id,external_vendor_id,vendor_name,claimant_email,evidence,status,review_note,created_at").order("created_at", { ascending: false }),
       supabase.from("reviews").select("id,vendor_name,rating,body,report_reason,status,created_at").order("created_at", { ascending: false }),
       supabase.from("admin_activity").select("id,action,entity_type,entity_id,details,created_at").order("created_at", { ascending: false }).limit(100),
       supabase.from("marketplace_settings").select("key,value"),
@@ -75,6 +75,16 @@ export default function AdminControlCentre() {
 
   async function updateClaim(id: string, status: "approved" | "rejected") {
     const claim = claims.find((item) => item.id === id); if (!claim) return;
+    if (status === "approved") {
+      const { error: listingError } = await supabase.from("vendor_listing_overrides").upsert({
+        external_id: claim.external_vendor_id,
+        email: claim.claimant_email.trim().toLowerCase(),
+        listing_status: "approved",
+        is_hidden: false,
+        updated_at: new Date().toISOString(),
+      });
+      if (listingError) return setNotice("The listing email could not be connected, so the claim was not approved.");
+    }
     const { error } = await supabase.from("vendor_claims").update({ status, reviewed_by: adminId, reviewed_at: new Date().toISOString() }).eq("id", id);
     if (error) return setNotice("The claim could not be updated.");
     await log(`${status} vendor claim`, "vendor_claim", id, { vendor_name: claim.vendor_name });
