@@ -24,6 +24,8 @@ type Vendor = {
 type VendorOverride = Omit<Vendor, "id" | "has_override"> & { external_id: string };
 
 const PAGE_SIZE = 1000;
+const TEST_VENDOR_ID = "manual-test-just-celebrate";
+const TEST_VENDOR_EMAIL = "elvispeprah95+vendor@gmail.com";
 
 export default function AdminVendorsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -62,13 +64,18 @@ export default function AdminVendorsPage() {
       const { data, error } = await supabase.from("vendor_listing_overrides").select("*");
       if (error) throw error;
       const overrideMap = new Map(((data || []) as VendorOverride[]).map((item) => [item.external_id, item]));
-      setVendors(sourceVendors.map((vendor) => {
+      const sourceIds = new Set(sourceVendors.map((vendor) => vendor.id));
+      const managedVendors = sourceVendors.map((vendor) => {
         const override = overrideMap.get(vendor.id);
         if (!override) return vendor;
         const { external_id: _externalId, ...changes } = override;
         void _externalId;
         return { ...vendor, ...changes, has_override: true };
-      }));
+      });
+      const manualVendors = ((data || []) as VendorOverride[])
+        .filter((item) => !sourceIds.has(item.external_id))
+        .map(({ external_id, ...vendor }) => ({ ...vendor, id: external_id, has_override: true }));
+      setVendors([...manualVendors, ...managedVendors]);
     } catch {
       setNotice("The vendor directory could not be loaded. Please refresh and try again.");
     }
@@ -166,6 +173,53 @@ export default function AdminVendorsPage() {
     setSaving(false);
   }
 
+  async function createTestVendor() {
+    setSaving(true);
+    setNotice("");
+    const testVendor: Vendor = {
+      id: TEST_VENDOR_ID,
+      business_name: "Just Celebrate Test Vendor",
+      category: "Test Services",
+      description: "Private test listing used by Just Celebrate to verify customer enquiries and vendor replies.",
+      phone: "",
+      website: "",
+      town: "London",
+      coverage_areas: "London",
+      services: "Marketplace enquiry testing",
+      email: TEST_VENDOR_EMAIL,
+      is_hidden: false,
+      listing_status: "approved",
+      is_featured: false,
+      has_override: true,
+    };
+    const { error } = await supabase.from("vendor_listing_overrides").upsert({
+      external_id: testVendor.id,
+      business_name: testVendor.business_name,
+      category: testVendor.category,
+      description: testVendor.description,
+      phone: testVendor.phone,
+      website: testVendor.website,
+      town: testVendor.town,
+      coverage_areas: testVendor.coverage_areas,
+      services: testVendor.services,
+      email: testVendor.email,
+      is_hidden: false,
+      listing_status: "approved",
+      is_featured: false,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) {
+      setNotice("The test vendor could not be created. Please try again.");
+    } else {
+      await logVendorAction("created test vendor", testVendor, { email: TEST_VENDOR_EMAIL });
+      setVendors((items) => [testVendor, ...items.filter((item) => item.id !== TEST_VENDOR_ID)]);
+      setQuery("Just Celebrate Test Vendor");
+      setQualityFilter("all");
+      setNotice("Test vendor created. It is ready for a safe enquiry test.");
+    }
+    setSaving(false);
+  }
+
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-5 py-8 text-[#0d3835]">
       <div className="mx-auto max-w-7xl">
@@ -176,7 +230,7 @@ export default function AdminVendorsPage() {
 
         <section className="mt-6 rounded-3xl bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex w-full flex-col gap-3 sm:max-w-3xl sm:flex-row"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search business, category, town or email" className="w-full rounded-2xl border border-[#d9d5cc] px-4 py-3 outline-none focus:border-[#ff655d]" /><select value={qualityFilter} onChange={(event) => setQualityFilter(event.target.value)} className="rounded-2xl border border-[#d9d5cc] bg-white px-4 py-3"><option value="all">All listings</option><option value="missing_email">Missing email</option><option value="missing_description">Missing description</option><option value="hidden">Hidden</option><option value="suspended">Suspended</option><option value="featured">Featured</option></select></div>
+            <div className="flex w-full flex-col gap-3 sm:max-w-4xl sm:flex-row"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search business, category, town or email" className="w-full rounded-2xl border border-[#d9d5cc] px-4 py-3 outline-none focus:border-[#ff655d]" /><select value={qualityFilter} onChange={(event) => setQualityFilter(event.target.value)} className="rounded-2xl border border-[#d9d5cc] bg-white px-4 py-3"><option value="all">All listings</option><option value="missing_email">Missing email</option><option value="missing_description">Missing description</option><option value="hidden">Hidden</option><option value="suspended">Suspended</option><option value="featured">Featured</option></select><button type="button" onClick={() => void createTestVendor()} disabled={saving} className="whitespace-nowrap rounded-2xl bg-[#ff655d] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{saving ? "Creating…" : "Create test vendor"}</button></div>
             <p className="text-sm font-semibold text-[#65706e]">{loading ? "Loading vendors…" : `${filtered.length} results`}</p>
           </div>
           {notice && <p className="mt-4 rounded-2xl bg-[#fff4d6] p-4 text-sm">{notice}</p>}
