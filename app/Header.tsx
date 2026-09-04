@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "./supabase";
 
 export default function Header() {
@@ -14,11 +15,11 @@ export default function Header() {
   useEffect(() => {
     async function continueLogin() {
       const destination = localStorage.getItem("just-celebrate-post-auth");
-      if (destination !== "messages" && destination !== "admin") return;
+      if (destination !== "messages" && destination !== "admin" && destination !== "claim") return;
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       localStorage.removeItem("just-celebrate-post-auth");
-      router.push(destination === "admin" ? "/admin" : "/messages");
+      router.push(destination === "admin" ? "/admin" : destination === "claim" ? "/complete-claim" : "/messages");
     }
 
     void continueLogin();
@@ -84,15 +85,12 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                setMessage("");
-                setShowLogin(true);
-              }}
+            <Link
+              href="/claim-business"
               className="hidden rounded-full bg-orange-500 px-6 py-2 text-sm font-semibold text-white hover:bg-orange-600 sm:block"
             >
               List your business
-            </button>
+            </Link>
 
             <button
               onClick={() => {
