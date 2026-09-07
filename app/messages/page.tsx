@@ -148,7 +148,7 @@ export default function MessagesPage() {
                     const mine = message.sender_id === userId;
                     return (
                       <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[82%] rounded-2xl px-4 py-3 ${mine ? "bg-orange-500 text-white" : "bg-white text-slate-800 shadow-sm"}`}>
+                        <div className={`max-w-[82%] rounded-2xl px-4 py-3 ${mine ? "bg-slate-900 text-white" : "bg-white text-slate-800 shadow-sm"}`}>
                           <p className="whitespace-pre-wrap text-sm leading-6">{message.body}</p>
                           <p className={`mt-1 text-xs ${mine ? "text-white/75" : "text-slate-400"}`}>{new Date(message.created_at).toLocaleString("en-GB")}</p>
                         </div>
