@@ -62,22 +62,28 @@ export default function VendorDirectory() {
       try {
         const allVendors: Vendor[] = [];
 
-        for (let offset = 0; ; offset += PAGE_SIZE) {
-          const response = await fetch(
-            `${vendorDirectoryUrl}/rest/v1/vendor_profiles?status=eq.approved&select=id,business_name,category,description,phone,website,town,coverage_areas,services,email&order=business_name.asc&offset=${offset}&limit=${PAGE_SIZE}`,
-            {
-              cache: "no-store",
-              headers: {
-                apikey: vendorDirectoryKey,
-                Authorization: `Bearer ${vendorDirectoryKey}`,
-              },
-            }
-          );
+        try {
+          for (let offset = 0; ; offset += PAGE_SIZE) {
+            const response = await fetch(
+              `${vendorDirectoryUrl}/rest/v1/vendor_profiles?status=eq.approved&select=id,business_name,category,description,phone,website,town,coverage_areas,services,email&order=business_name.asc&offset=${offset}&limit=${PAGE_SIZE}`,
+              {
+                cache: "no-store",
+                signal: AbortSignal.timeout(8000),
+                headers: {
+                  apikey: vendorDirectoryKey,
+                  Authorization: `Bearer ${vendorDirectoryKey}`,
+                },
+              }
+            );
 
-          if (!response.ok) throw new Error("Could not load vendors");
-          const page = (await response.json()) as Vendor[];
-          allVendors.push(...page);
-          if (page.length < PAGE_SIZE) break;
+            if (!response.ok) throw new Error("Could not load vendors");
+            const page = (await response.json()) as Vendor[];
+            allVendors.push(...page);
+            if (page.length < PAGE_SIZE) break;
+          }
+        } catch {
+          allVendors.length = 0;
+          setError("Some listings are temporarily unavailable. Available businesses are shown below.");
         }
 
         const { data: overrides, error: overrideError } = await supabase
