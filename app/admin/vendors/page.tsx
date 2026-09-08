@@ -50,15 +50,20 @@ export default function AdminVendorsPage() {
 
     try {
       const sourceVendors: Vendor[] = [];
-      for (let offset = 0; ; offset += PAGE_SIZE) {
-        const response = await fetch(
-          `${vendorDirectoryUrl}/rest/v1/vendor_profiles?status=eq.approved&select=id,business_name,category,description,phone,website,town,coverage_areas,services,email&order=business_name.asc&offset=${offset}&limit=${PAGE_SIZE}`,
-          { headers: { apikey: vendorDirectoryKey, Authorization: `Bearer ${vendorDirectoryKey}` } }
-        );
-        if (!response.ok) throw new Error("Directory unavailable");
-        const page = (await response.json()) as Vendor[];
-        sourceVendors.push(...page);
-        if (page.length < PAGE_SIZE) break;
+      try {
+        for (let offset = 0; ; offset += PAGE_SIZE) {
+          const response = await fetch(
+            `${vendorDirectoryUrl}/rest/v1/vendor_profiles?status=eq.approved&select=id,business_name,category,description,phone,website,town,coverage_areas,services,email&order=business_name.asc&offset=${offset}&limit=${PAGE_SIZE}`,
+            { signal: AbortSignal.timeout(8000), headers: { apikey: vendorDirectoryKey, Authorization: `Bearer ${vendorDirectoryKey}` } }
+          );
+          if (!response.ok) throw new Error("Directory unavailable");
+          const page = (await response.json()) as Vendor[];
+          sourceVendors.push(...page);
+          if (page.length < PAGE_SIZE) break;
+        }
+      } catch {
+        sourceVendors.length = 0;
+        setNotice("The original directory is unavailable. Showing listings saved in the current database.");
       }
 
       const { data, error } = await supabase.from("vendor_listing_overrides").select("*");
