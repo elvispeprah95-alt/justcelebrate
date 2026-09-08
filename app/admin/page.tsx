@@ -32,49 +32,73 @@ export default function AdminPage() {
   const [vendorCount, setVendorCount] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadAdmin() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (cancelled) return;
+
+        if (sessionError) {
+          setNotice("We couldn't verify your admin session. Please sign in again.");
+          setLoading(false);
+          return;
+        }
+
+        if (!session) {
+          setLoading(false);
+          return;
+        }
+
+        if (session.user.app_metadata?.account_type !== "admin") {
+          setNotice("This account does not have Just Celebrate admin access.");
+          setLoading(false);
+          return;
+        }
+
+        // Open the dashboard as soon as access is confirmed. Dashboard data loads
+        // separately so a slow request can never trap the user on the loading screen.
+        setIsAdmin(true);
         setLoading(false);
-        return;
+
+        const [profileResult, conversationResult, messageResult, vendorResult] = await Promise.all([
+          supabase.from("profiles").select("id,display_name,email,account_type,created_at").order("created_at", { ascending: false }),
+          supabase.from("conversations").select("id,vendor_name,subject,status,last_message_at").order("last_message_at", { ascending: false }).limit(20),
+          supabase.from("messages").select("id", { count: "exact", head: true }),
+          fetch(`${vendorDirectoryUrl}/rest/v1/vendor_profiles?status=eq.approved&select=id&limit=1`, {
+            headers: {
+              apikey: vendorDirectoryKey,
+              Authorization: `Bearer ${vendorDirectoryKey}`,
+              Prefer: "count=exact",
+            },
+          }),
+        ]);
+
+        if (cancelled) return;
+
+        if (profileResult.error || conversationResult.error || messageResult.error || !vendorResult.ok) {
+          setNotice("Some admin information could not be loaded. Please refresh and try again.");
+        }
+
+        setProfiles((profileResult.data || []) as Profile[]);
+        setConversations((conversationResult.data || []) as Conversation[]);
+        setMessageCount(messageResult.count || 0);
+        const range = vendorResult.headers.get("content-range") || "";
+        setVendorCount(Number(range.split("/")[1]) || 0);
+      } catch {
+        if (!cancelled) {
+          setNotice("We couldn't load all admin information. The dashboard is still available.");
+          setLoading(false);
+        }
       }
-
-      const { data: refreshed } = await supabase.auth.refreshSession();
-      const user = refreshed.session?.user || session.user;
-      if (user.app_metadata?.account_type !== "admin") {
-        setNotice("This account does not have Just Celebrate admin access.");
-        setLoading(false);
-        return;
-      }
-
-      setIsAdmin(true);
-      const [profileResult, conversationResult, messageResult, vendorResult] = await Promise.all([
-        supabase.from("profiles").select("id,display_name,email,account_type,created_at").order("created_at", { ascending: false }),
-        supabase.from("conversations").select("id,vendor_name,subject,status,last_message_at").order("last_message_at", { ascending: false }).limit(20),
-        supabase.from("messages").select("id", { count: "exact", head: true }),
-        fetch(`${vendorDirectoryUrl}/rest/v1/vendor_profiles?status=eq.approved&select=id&limit=1`, {
-          headers: {
-            apikey: vendorDirectoryKey,
-            Authorization: `Bearer ${vendorDirectoryKey}`,
-            Prefer: "count=exact",
-          },
-        }),
-      ]);
-
-      if (profileResult.error || conversationResult.error || messageResult.error) {
-        setNotice("Some admin information could not be loaded. Please refresh and try again.");
-      }
-
-      setProfiles((profileResult.data || []) as Profile[]);
-      setConversations((conversationResult.data || []) as Conversation[]);
-      setMessageCount(messageResult.count || 0);
-      const range = vendorResult.headers.get("content-range") || "";
-      setVendorCount(Number(range.split("/")[1]) || 0);
-      setLoading(false);
     }
 
     const timer = window.setTimeout(() => void loadAdmin(), 0);
-    return () => window.clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, []);
 
   async function sendAdminLink(event: FormEvent<HTMLFormElement>) {
