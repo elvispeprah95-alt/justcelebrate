@@ -36,7 +36,13 @@ export default function AdminPage() {
 
     async function loadAdmin() {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) => {
+            window.setTimeout(() => reject(new Error("Session check timed out")), 8000);
+          }),
+        ]);
+        const { data: { session }, error: sessionError } = sessionResult;
 
         if (cancelled) return;
 
