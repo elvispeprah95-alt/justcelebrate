@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { supabase } from "../supabase";
 
 type Vendor = {
@@ -18,7 +18,7 @@ type Vendor = {
   services: string;
 };
 
-export default function VendorProfilePage() {
+function VendorProfileContent() {
   const searchParams = useSearchParams();
   const name = searchParams.get("name") || "";
   const [vendor, setVendor] = useState<Vendor | null>(null);
@@ -113,5 +113,13 @@ export default function VendorProfilePage() {
         ) : null}
       </div>
     </main>
+  );
+}
+
+export default function VendorProfilePage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900"><div className="mx-auto max-w-4xl rounded-3xl bg-white p-8 shadow-sm">Loading vendor…</div></main>}>
+      <VendorProfileContent />
+    </Suspense>
   );
 }
