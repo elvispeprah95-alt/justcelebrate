@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const occasionOptions = ["Birthday", "Wedding", "Baby shower", "Kids party", "Engagement", "Anniversary", "Corporate event", "Other"];
 const serviceOptions = ["Venue", "DJ / Music", "Photography", "Catering", "Cake & treats", "Decor & balloons", "Entertainment", "Transport"];
 
 export default function Planner() {
+  const router = useRouter();
   const [occasion, setOccasion] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
@@ -21,14 +23,11 @@ export default function Planner() {
   }
 
   function continuePlanning() {
-    const params = new URLSearchParams();
-    if (occasion) params.set("occasion", occasion);
-    if (date) params.set("date", date);
-    if (location) params.set("location", location);
-    if (guests) params.set("guests", guests);
-    if (budget) params.set("budget", budget);
-    if (services.length) params.set("services", services.join(","));
-    window.location.href = `/vendors?${params.toString()}`;
+    const plan = { occasion, date, location, guests, budget, services };
+    localStorage.setItem("just-celebrate-plan", JSON.stringify(plan));
+    localStorage.removeItem("just-celebrate-checklist");
+    localStorage.setItem("just-celebrate-spent", "0");
+    router.push("/planner");
   }
 
   return (
@@ -38,11 +37,11 @@ export default function Planner() {
           <div className="lg:sticky lg:top-28">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff6c63]">Your celebration planner</p>
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#063d39] sm:text-4xl">Start with the occasion. We’ll help with the rest.</h2>
-            <p className="mt-4 text-base leading-7 text-slate-600">Create the basics of your event in one place. Just Celebrate can then guide your checklist and connect you with the right businesses when you need them.</p>
+            <p className="mt-4 text-base leading-7 text-slate-600">Create the basics of your event in one place. Just Celebrate will turn them into a personal checklist, budget tracker and supplier plan.</p>
             <div className="mt-7 rounded-2xl border border-[#d9e4df] bg-white p-5">
-              <div className="flex items-center justify-between text-sm font-bold text-[#063d39]"><span>Plan progress</span><span>{progress}%</span></div>
+              <div className="flex items-center justify-between text-sm font-bold text-[#063d39]"><span>Plan setup</span><span>{progress}%</span></div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#ff6c63] transition-all" style={{ width: `${progress}%` }} /></div>
-              <p className="mt-4 text-sm text-slate-600">Next, we’ll turn this into your personal celebration plan.</p>
+              <p className="mt-4 text-sm text-slate-600">You can update everything later from your planning dashboard.</p>
             </div>
           </div>
 
