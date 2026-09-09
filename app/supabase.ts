@@ -5,5 +5,7 @@ export const supabaseKey = "sb_publishable_nKZ3DnE9IDgKLMQFhVh1Jg_KST0Ebhf";
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-export const vendorDirectoryUrl = "https://azcdjuxvmdfjthngkhyn.supabase.co";
-export const vendorDirectoryKey = "sb_publishable_2k0t5-NrHs0gKOipeNod0Q_NMmF7yCJ";
+// The vendor directory now uses the main Just Celebrate Supabase project.
+// Keeping these aliases means the existing vendor and claim pages continue to work.
+export const vendorDirectoryUrl = supabaseUrl;
+export const vendorDirectoryKey = supabaseKey;
