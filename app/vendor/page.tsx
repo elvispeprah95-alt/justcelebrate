@@ -94,24 +94,20 @@ export default function VendorProfilePage() {
             {vendor.description ? <p className="mt-6 text-base leading-7 text-slate-600">{vendor.description}</p> : null}
 
             <div className="mt-8 grid gap-5 sm:grid-cols-2">
-              {vendor.services ? (
-                <div className="rounded-2xl bg-slate-50 p-5">
-                  <h2 className="font-bold">Services</h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{vendor.services}</p>
-                </div>
-              ) : null}
-              {vendor.coverage_areas ? (
-                <div className="rounded-2xl bg-slate-50 p-5">
-                  <h2 className="font-bold">Areas covered</h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{vendor.coverage_areas}</p>
-                </div>
-              ) : null}
+              {vendor.services ? <div className="rounded-2xl bg-slate-50 p-5"><h2 className="font-bold">Services</h2><p className="mt-2 text-sm leading-6 text-slate-600">{vendor.services}</p></div> : null}
+              {vendor.coverage_areas ? <div className="rounded-2xl bg-slate-50 p-5"><h2 className="font-bold">Areas covered</h2><p className="mt-2 text-sm leading-6 text-slate-600">{vendor.coverage_areas}</p></div> : null}
             </div>
 
             <div className="mt-8 flex flex-wrap gap-3">
               {vendor.website ? <a href={vendor.website} target="_blank" rel="noreferrer" className="rounded-xl bg-orange-500 px-5 py-3 font-bold text-white">Visit website</a> : null}
               {vendor.phone ? <a href={`tel:${vendor.phone.replace(/\s/g, "")}`} className="rounded-xl border border-slate-300 px-5 py-3 font-bold">Call vendor</a> : null}
               {vendor.email ? <a href={`mailto:${vendor.email}`} className="rounded-xl border border-slate-300 px-5 py-3 font-bold">Email vendor</a> : null}
+            </div>
+
+            <div className="mt-10 rounded-2xl border border-orange-200 bg-orange-50 p-6">
+              <h2 className="text-lg font-extrabold">Is this your business?</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Claim this listing to manage your business details, update your services and receive enquiries through Just Celebrate.</p>
+              <Link href={`/claim-business?business=${encodeURIComponent(vendor.business_name)}&vendor=${encodeURIComponent(vendor.id)}`} className="mt-4 inline-flex rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800">Claim this listing</Link>
             </div>
           </article>
         ) : null}
