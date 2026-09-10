@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Just Celebrate | Find event vendors",
-  description: "Find and contact trusted businesses for your celebration.",
+  metadataBase: new URL("https://www.justcelebrate.co.uk"),
+  title: "Just Celebrate | Celebration & Party Planner",
+  description: "Plan your birthday, wedding or special occasion in one place. Organise your checklist, track your budget and find suppliers with Just Celebrate.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /messages
+Disallow: /set-password
+Disallow: /complete-claim
+Disallow: /complete-enquiry
+
+Sitemap: https://www.justcelebrate.co.uk/sitemap.xml
