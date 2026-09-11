@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { decodePlan, emptyPlan, useSavedPlanner } from "./useSavedPlanner";
 import { useRouter } from "next/navigation";
 
 const occasionOptions = ["Birthday", "Wedding", "Baby shower", "Kids party", "Engagement", "Anniversary", "Corporate event", "Other"];
@@ -8,25 +9,22 @@ const serviceOptions = ["Venue", "DJ / Music", "Photography", "Catering", "Cake 
 
 export default function Planner() {
   const router = useRouter();
-  const [occasion, setOccasion] = useState("");
-  const [date, setDate] = useState("");
-  const [location, setLocation] = useState("");
-  const [guests, setGuests] = useState("");
-  const [budget, setBudget] = useState("");
-  const [services, setServices] = useState<string[]>([]);
+  const storage = useSavedPlanner("just-celebrate-plan", emptyPlan, decodePlan);
+  const { occasion, date, location, guests, budget, services } = storage.value;
+  const setOccasion = (occasion: string) => storage.update((plan) => ({ ...plan, occasion }));
+  const setDate = (date: string) => storage.update((plan) => ({ ...plan, date }));
+  const setLocation = (location: string) => storage.update((plan) => ({ ...plan, location }));
+  const setGuests = (guests: string) => storage.update((plan) => ({ ...plan, guests }));
+  const setBudget = (budget: string) => storage.update((plan) => ({ ...plan, budget }));
 
   const completed = useMemo(() => [occasion, date, location, guests, budget].filter(Boolean).length + (services.length ? 1 : 0), [occasion, date, location, guests, budget, services]);
   const progress = Math.round((completed / 6) * 100);
 
   function toggleService(service: string) {
-    setServices((current) => current.includes(service) ? current.filter((item) => item !== service) : [...current, service]);
+    storage.update((plan) => ({ ...plan, services: plan.services.includes(service) ? plan.services.filter((item) => item !== service) : [...plan.services, service] }));
   }
 
   function continuePlanning() {
-    const plan = { occasion, date, location, guests, budget, services };
-    localStorage.setItem("just-celebrate-plan", JSON.stringify(plan));
-    localStorage.removeItem("just-celebrate-checklist");
-    localStorage.setItem("just-celebrate-spent", "0");
     router.push("/planner");
   }
 
@@ -45,7 +43,7 @@ export default function Planner() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-[#e5ded1] bg-white p-5 sm:p-8">
+          <fieldset disabled={!storage.ready} className="min-w-0 rounded-3xl border border-[#e5ded1] bg-white p-5 sm:p-8">
             <label className="block text-sm font-bold text-[#063d39]">What are you celebrating?</label>
             <div className="mt-3 flex flex-wrap gap-2">
               {occasionOptions.map((item) => <button key={item} type="button" onClick={() => setOccasion(item)} className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${occasion === item ? "border-[#ff6c63] bg-[#fff0ee] text-[#063d39]" : "border-slate-200 text-slate-600 hover:border-[#ff6c63]"}`}>{item}</button>)}
@@ -60,9 +58,10 @@ export default function Planner() {
 
             <div className="mt-7"><p className="text-sm font-bold text-[#063d39]">What might you need?</p><p className="mt-1 text-sm text-slate-500">Choose as many as you like. You can change these later.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{serviceOptions.map((service) => <label key={service} className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-semibold text-slate-700 hover:border-[#ff6c63]"><input type="checkbox" checked={services.includes(service)} onChange={() => toggleService(service)} className="h-4 w-4 accent-[#ff6c63]" />{service}</label>)}</div></div>
 
-            <button type="button" onClick={continuePlanning} disabled={!occasion} className="mt-8 w-full rounded-xl bg-[#063d39] px-6 py-4 font-bold text-white transition hover:bg-[#0b504a] disabled:cursor-not-allowed disabled:opacity-40">Build my celebration plan →</button>
-            <p className="mt-3 text-center text-xs text-slate-500">No payment needed to start planning.</p>
-          </div>
+            <button type="button" onClick={continuePlanning} disabled={!storage.ready || !occasion} className="mt-8 w-full rounded-xl bg-[#063d39] px-6 py-4 font-bold text-white transition hover:bg-[#0b504a] disabled:cursor-not-allowed disabled:opacity-40">{storage.saved ? "Continue my celebration plan →" : "Build my celebration plan →"}</button>
+            <p className="mt-3 text-center text-xs text-slate-500">No account needed. Your plan saves in this browser.</p>
+            <p role="status" className="mt-2 text-center text-xs text-slate-600">{storage.error || (!storage.ready ? "Loading your saved plan…" : storage.saved ? "Saved on this device. Return using the same browser." : "Your details will save automatically as you type.")}</p>
+          </fieldset>
         </div>
       </div>
     </section>

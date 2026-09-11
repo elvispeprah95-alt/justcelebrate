@@ -1,16 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-
-type CelebrationPlan = {
-  occasion: string;
-  date: string;
-  location: string;
-  guests: string;
-  budget: string;
-  services: string[];
-};
+import { useMemo, useState } from "react";
+import { decodePlan, emptyPlan, useSavedPlanner } from "../useSavedPlanner";
 
 type PlanItem = {
   id: string;
@@ -28,41 +20,27 @@ const defaultItems: PlanItem[] = [
   { id: "invitations", label: "Invitations", done: false },
 ];
 
+function decodeItems(raw: string): PlanItem[] {
+  const value = JSON.parse(raw);
+  if (!Array.isArray(value)) throw new Error("Invalid checklist");
+  return defaultItems.map((item) => ({ ...item, done: value.some((saved) => saved?.id === item.id && saved.done === true) }));
+}
+
+function decodeSpent(raw: string) {
+  return Number.isFinite(Number(raw)) && Number(raw) >= 0 ? raw : "0";
+}
+const encodeSpent = (value: string) => value;
+
 export default function CelebrationPlannerPage() {
-  const [plan, setPlan] = useState<CelebrationPlan>({
-    occasion: "My celebration",
-    date: "",
-    location: "",
-    guests: "",
-    budget: "",
-    services: [],
-  });
-  const [items, setItems] = useState<PlanItem[]>(defaultItems);
-  const [spent, setSpent] = useState("0");
+  const planStorage = useSavedPlanner("just-celebrate-plan", emptyPlan, decodePlan);
+  const itemStorage = useSavedPlanner("just-celebrate-simple-plan", defaultItems, decodeItems);
+  const spentStorage = useSavedPlanner("just-celebrate-spent", "0", decodeSpent, encodeSpent);
+  const { value: plan, update: setPlan } = planStorage;
+  const { value: items, update: setItems } = itemStorage;
+  const { value: spent, update: setSpent } = spentStorage;
+  const ready = planStorage.ready && itemStorage.ready && spentStorage.ready;
+  const saveError = planStorage.error || itemStorage.error || spentStorage.error;
   const [active, setActive] = useState<"checklist" | "budget" | "guests" | "suppliers">("checklist");
-
-  useEffect(() => {
-    try {
-      const savedPlan = localStorage.getItem("just-celebrate-plan");
-      const savedItems = localStorage.getItem("just-celebrate-simple-plan");
-      const savedSpent = localStorage.getItem("just-celebrate-spent");
-      if (savedPlan) setPlan(JSON.parse(savedPlan));
-      if (savedItems) setItems(JSON.parse(savedItems));
-      if (savedSpent) setSpent(savedSpent);
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("just-celebrate-plan", JSON.stringify(plan));
-  }, [plan]);
-
-  useEffect(() => {
-    localStorage.setItem("just-celebrate-simple-plan", JSON.stringify(items));
-  }, [items]);
-
-  useEffect(() => {
-    localStorage.setItem("just-celebrate-spent", spent);
-  }, [spent]);
 
   const eventDateLabel = useMemo(() => {
     if (!plan.date) return "Date not set";
@@ -89,6 +67,8 @@ export default function CelebrationPlannerPage() {
 
   const nextHref = nextItem && nextItem.id !== "invitations" ? "/#vendors" : "#plan";
 
+  if (!ready) return <main className="min-h-screen bg-[#f8f4ec] p-10 text-[#063d39]" role="status">Loading your saved celebration…</main>;
+
   return (
     <main className="min-h-screen bg-[#f8f4ec] text-slate-900">
       <header className="border-b border-[#e5ded1] bg-white">
@@ -104,6 +84,7 @@ export default function CelebrationPlannerPage() {
       </header>
 
       <div className="mx-auto max-w-5xl px-5 py-10 sm:px-6">
+        <p role="status" className="mb-5 text-sm text-slate-600">{saveError || "Saved automatically on this device. Return using the same browser; clearing site data removes your plan."}</p>
         <section>
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff6c63]">Your celebration</p>
           <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
