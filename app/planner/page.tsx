@@ -65,7 +65,9 @@ export default function CelebrationPlannerPage() {
     );
   }
 
-  const nextHref = nextItem && nextItem.id !== "invitations" ? "/#vendors" : "#plan";
+  const nextHref = nextItem?.id === "music"
+    ? "/#vendors-djs-music"
+    : nextItem && nextItem.id !== "invitations" ? "/#vendors" : "#plan";
 
   if (!ready) return <main className="min-h-screen bg-[#f8f4ec] p-10 text-[#063d39]" role="status">Loading your saved celebration…</main>;
 
