@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { getVendorCategoryHref, plannerSupplierCategories } from "../vendorCategories";
 import { useMemo, useState } from "react";
 import { decodePlan, emptyPlan, useSavedPlanner } from "../useSavedPlanner";
 
@@ -65,9 +66,8 @@ export default function CelebrationPlannerPage() {
     );
   }
 
-  const nextHref = nextItem?.id === "music"
-    ? "/#vendors-djs-music"
-    : nextItem && nextItem.id !== "invitations" ? "/#vendors" : "#plan";
+  const nextCategory = nextItem ? plannerSupplierCategories[nextItem.id] : undefined;
+  const nextHref = nextCategory ? getVendorCategoryHref(nextCategory) : "#plan";
 
   if (!ready) return <main className="min-h-screen bg-[#f8f4ec] p-10 text-[#063d39]" role="status">Loading your saved celebration…</main>;
 
@@ -120,7 +120,7 @@ export default function CelebrationPlannerPage() {
           </p>
           {nextItem && (
             <Link href={nextHref} className="mt-5 inline-flex rounded-xl bg-[#ff6c63] px-5 py-3 font-bold text-white hover:bg-[#e95a52]">
-              {nextItem.id === "invitations" ? "Mark invitations when done" : `Find ${nextItem.label.toLowerCase()} →`}
+              {`Find ${nextItem.label.toLowerCase()} →`}
             </Link>
           )}
         </section>
@@ -191,7 +191,13 @@ export default function CelebrationPlannerPage() {
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#ff6c63]">Suppliers</p>
             <h2 className="mt-2 text-2xl font-bold text-[#063d39]">Find people when you need them</h2>
             <p className="mt-3 text-slate-600">Use your plan to find the right supplier for each next step, rather than searching the whole directory.</p>
-            <Link href="/#vendors" className="mt-5 inline-flex rounded-xl bg-[#ff6c63] px-5 py-3 font-bold text-white hover:bg-[#e95a52]">Browse suppliers →</Link>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {items.map((item) => (
+                <Link key={item.id} href={getVendorCategoryHref(plannerSupplierCategories[item.id])} className="rounded-xl border border-[#e5ded1] bg-white px-5 py-3 font-bold text-[#063d39] hover:border-[#ff6c63]">
+                  Find {item.label.toLowerCase()} →
+                </Link>
+              ))}
+            </div>
           </section>
         )}
 

@@ -28,3 +28,24 @@ const categoryNames = new Map(
 export function getVendorCategory(category: string | null | undefined): string {
   return categoryNames.get(normalise(category || "")) || "Other services";
 }
+
+const categoryHash = (name: string) =>
+  "#vendors-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+export function getVendorCategoryHref(name: string): string {
+  return "/" + categoryHash(name);
+}
+
+export function getVendorCategoryFromHash(hash: string): string | undefined {
+  return vendorCategories.find((group) => categoryHash(group.name) === hash)?.name;
+}
+
+export const plannerSupplierCategories: Record<string, string> = {
+  venue: "Venues",
+  music: "DJs & music",
+  catering: "Catering",
+  decor: "Decor & balloons",
+  cake: "Cakes & treats",
+  photographer: "Photography & video",
+  invitations: "Celebrants & stationery",
+};
