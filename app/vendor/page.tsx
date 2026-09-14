@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AddToPlan } from "../SavedSuppliers";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { supabase } from "../supabase";
@@ -97,6 +98,8 @@ function VendorProfileContent() {
               {vendor.services ? <div className="rounded-2xl bg-slate-50 p-5"><h2 className="font-bold">Services</h2><p className="mt-2 text-sm leading-6 text-slate-600">{vendor.services}</p></div> : null}
               {vendor.coverage_areas ? <div className="rounded-2xl bg-slate-50 p-5"><h2 className="font-bold">Areas covered</h2><p className="mt-2 text-sm leading-6 text-slate-600">{vendor.coverage_areas}</p></div> : null}
             </div>
+
+            <AddToPlan vendor={vendor} />
 
             <div className="mt-8 flex flex-wrap gap-3">
               {vendor.website ? <a href={vendor.website} target="_blank" rel="noreferrer" className="rounded-xl bg-orange-500 px-5 py-3 font-bold text-white">Visit website</a> : null}

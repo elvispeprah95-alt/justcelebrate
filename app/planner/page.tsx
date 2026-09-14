@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import SavedSuppliers from "../SavedSuppliers";
 import { getVendorCategoryHref, plannerSupplierCategories } from "../vendorCategories";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { decodePlan, emptyPlan, useSavedPlanner } from "../useSavedPlanner";
 
 type PlanItem = {
@@ -42,6 +43,15 @@ export default function CelebrationPlannerPage() {
   const ready = planStorage.ready && itemStorage.ready && spentStorage.ready;
   const saveError = planStorage.error || itemStorage.error || spentStorage.error;
   const [active, setActive] = useState<"checklist" | "budget" | "guests" | "suppliers">("checklist");
+
+  useEffect(() => {
+    function openSuppliers() {
+      if (window.location.hash === "#suppliers") setActive("suppliers");
+    }
+    openSuppliers();
+    window.addEventListener("hashchange", openSuppliers);
+    return () => window.removeEventListener("hashchange", openSuppliers);
+  }, []);
 
   const eventDateLabel = useMemo(() => {
     if (!plan.date) return "Date not set";
@@ -187,8 +197,9 @@ export default function CelebrationPlannerPage() {
         )}
 
         {active === "suppliers" && (
-          <section className="mt-6 rounded-3xl border border-[#e5ded1] bg-white p-6 sm:p-8">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#ff6c63]">Suppliers</p>
+          <section id="suppliers" className="mt-6 rounded-3xl border border-[#e5ded1] bg-white p-6 sm:p-8">
+            <SavedSuppliers />
+            <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-[#ff6c63]">Add more suppliers</p>
             <h2 className="mt-2 text-2xl font-bold text-[#063d39]">Find people when you need them</h2>
             <p className="mt-3 text-slate-600">Use your plan to find the right supplier for each next step, rather than searching the whole directory.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
