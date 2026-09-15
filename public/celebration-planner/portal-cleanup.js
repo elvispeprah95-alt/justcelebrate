@@ -1,85 +1,12 @@
 (() => {
   const KEY = 'just-celebrate-private-planner-v1';
-  const vendorRoutes = {
-    venue: 'venues',
-    music: 'djs-music',
-    photography: 'photography-video',
-    catering: 'catering',
-    cake: 'cakes-treats',
-    decor: 'decor-balloons',
-    entertainment: 'entertainment',
-    transport: 'transport'
-  };
-
-  // Keep celebration and supplier data intact, but retire checklist state.
-  try {
-    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (saved && typeof saved === 'object') {
-      saved.portalTab = 'suppliers';
-      saved.checks = {};
-      saved.customTasks = [];
-      localStorage.setItem(KEY, JSON.stringify(saved));
-    }
-  } catch {}
-
-  function serviceFromText(text) {
-    const value = (text || '').toLowerCase();
-    if (value.includes('venue')) return 'venue';
-    if (value.includes('dj') || value.includes('music')) return 'music';
-    if (value.includes('photo')) return 'photography';
-    if (value.includes('cater')) return 'catering';
-    if (value.includes('cake') || value.includes('treat')) return 'cake';
-    if (value.includes('decor') || value.includes('balloon')) return 'decor';
-    if (value.includes('entertain')) return 'entertainment';
-    if (value.includes('transport')) return 'transport';
-    return '';
-  }
-
-  function connectVendorButtons() {
-    document.querySelectorAll('button, a').forEach((el) => {
-      const text = (el.textContent || '').trim().toLowerCase();
-      if (!text.includes('add to my portal')) return;
-      const card = el.closest('article, section, div');
-      const service = serviceFromText(card?.textContent || '');
-      if (!service || !vendorRoutes[service]) return;
-      el.dataset.vendorService = service;
-      el.title = `Choose a ${service} vendor`;
-    });
-  }
-
-  document.addEventListener('click', (event) => {
-    const target = event.target.closest('[data-vendor-service]');
-    if (!target) return;
-    const service = target.dataset.vendorService;
-    const route = vendorRoutes[service];
-    if (!route) return;
-    event.preventDefault();
-    window.location.href = `/vendors#vendors-${route}`;
-  }, true);
-
-  function removeChecklistUI() {
-    document.querySelectorAll('button, a, [role="tab"]').forEach((el) => {
-      const text = (el.textContent || '').trim().toLowerCase();
-      if (text.includes('checklist')) el.remove();
-    });
-
-    document.querySelectorAll('.summary-totals > div').forEach((el) => {
-      if ((el.textContent || '').toLowerCase().includes('tasks complete')) el.remove();
-    });
-
-    document.querySelectorAll('h2, h3, h4, p').forEach((el) => {
-      const text = (el.textContent || '').trim().toLowerCase();
-      if (!text.includes('checklist')) return;
-      const panel = el.closest('.portal-panel, .checklist-panel, .task-panel');
-      if (panel) panel.remove();
-    });
-  }
-
-  function enhance() {
-    removeChecklistUI();
-    connectVendorButtons();
-  }
-
-  enhance();
-  new MutationObserver(enhance).observe(document.body, { childList: true, subtree: true });
+  const vendorRoutes = { venue:'venues', music:'djs-music', photography:'photography-video', catering:'catering', cake:'cakes-treats', decor:'decor-balloons', entertainment:'entertainment', transport:'transport' };
+  try { const saved=JSON.parse(localStorage.getItem(KEY)||'null'); if(saved&&typeof saved==='object'){saved.portalTab='suppliers';saved.checks={};saved.customTasks=[];localStorage.setItem(KEY,JSON.stringify(saved));} } catch {}
+  function serviceFromText(text){const value=(text||'').toLowerCase();if(value.includes('venue'))return'venue';if(value.includes('dj')||value.includes('music'))return'music';if(value.includes('photo'))return'photography';if(value.includes('cater'))return'catering';if(value.includes('cake')||value.includes('treat'))return'cake';if(value.includes('decor')||value.includes('balloon'))return'decor';if(value.includes('entertain'))return'entertainment';if(value.includes('transport'))return'transport';return'';}
+  function connectVendorButtons(){document.querySelectorAll('button,a').forEach(el=>{const text=(el.textContent||'').trim().toLowerCase();if(!text.includes('add to my portal'))return;const card=el.closest('article,section,div');const service=serviceFromText(card?.textContent||'');if(!service||!vendorRoutes[service])return;el.dataset.vendorService=service;el.title=`Choose a ${service} vendor`;});}
+  document.addEventListener('click',event=>{const target=event.target.closest('[data-vendor-service]');if(!target)return;const route=vendorRoutes[target.dataset.vendorService];if(!route)return;event.preventDefault();window.location.href=`/vendors#vendors-${route}`;},true);
+  function removeChecklistUI(){document.querySelectorAll('button,a,[role="tab"]').forEach(el=>{if((el.textContent||'').trim().toLowerCase().includes('checklist'))el.remove();});document.querySelectorAll('.summary-totals > div').forEach(el=>{if((el.textContent||'').toLowerCase().includes('tasks complete'))el.remove();});document.querySelectorAll('h2,h3,h4,p').forEach(el=>{const text=(el.textContent||'').trim().toLowerCase();if(!text.includes('checklist'))return;const panel=el.closest('.portal-panel,.checklist-panel,.task-panel');if(panel)panel.remove();});}
+  function clarifyServicesHeading(){document.querySelectorAll('.panel-heading,h2').forEach(el=>{if((el.textContent||'').trim()==='What would make it yours?')el.textContent='What do you need for your celebration?';});}
+  function enhance(){removeChecklistUI();clarifyServicesHeading();connectVendorButtons();}
+  enhance();new MutationObserver(enhance).observe(document.body,{childList:true,subtree:true});
 })();
