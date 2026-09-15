@@ -1,5 +1,15 @@
 (() => {
   const KEY = 'just-celebrate-private-planner-v1';
+  const vendorRoutes = {
+    venue: 'venues',
+    music: 'djs-music',
+    photography: 'photography-video',
+    catering: 'catering',
+    cake: 'cakes-treats',
+    decor: 'decor-balloons',
+    entertainment: 'entertainment',
+    transport: 'transport'
+  };
 
   // Keep celebration and supplier data intact, but retire checklist state.
   try {
@@ -11,6 +21,41 @@
       localStorage.setItem(KEY, JSON.stringify(saved));
     }
   } catch {}
+
+  function serviceFromText(text) {
+    const value = (text || '').toLowerCase();
+    if (value.includes('venue')) return 'venue';
+    if (value.includes('dj') || value.includes('music')) return 'music';
+    if (value.includes('photo')) return 'photography';
+    if (value.includes('cater')) return 'catering';
+    if (value.includes('cake') || value.includes('treat')) return 'cake';
+    if (value.includes('decor') || value.includes('balloon')) return 'decor';
+    if (value.includes('entertain')) return 'entertainment';
+    if (value.includes('transport')) return 'transport';
+    return '';
+  }
+
+  function connectVendorButtons() {
+    document.querySelectorAll('button, a').forEach((el) => {
+      const text = (el.textContent || '').trim().toLowerCase();
+      if (!text.includes('add to my portal')) return;
+      const card = el.closest('article, section, div');
+      const service = serviceFromText(card?.textContent || '');
+      if (!service || !vendorRoutes[service]) return;
+      el.dataset.vendorService = service;
+      el.title = `Choose a ${service} vendor`;
+    });
+  }
+
+  document.addEventListener('click', (event) => {
+    const target = event.target.closest('[data-vendor-service]');
+    if (!target) return;
+    const service = target.dataset.vendorService;
+    const route = vendorRoutes[service];
+    if (!route) return;
+    event.preventDefault();
+    window.location.href = `/vendors#vendors-${route}`;
+  }, true);
 
   function removeChecklistUI() {
     document.querySelectorAll('button, a, [role="tab"]').forEach((el) => {
@@ -30,6 +75,11 @@
     });
   }
 
-  removeChecklistUI();
-  new MutationObserver(removeChecklistUI).observe(document.body, { childList: true, subtree: true });
+  function enhance() {
+    removeChecklistUI();
+    connectVendorButtons();
+  }
+
+  enhance();
+  new MutationObserver(enhance).observe(document.body, { childList: true, subtree: true });
 })();
