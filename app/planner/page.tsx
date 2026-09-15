@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import SplitPlanner from "./SplitPlanner";
 
 export default function CelebrationPlannerPage() {
-  redirect("/celebration-planner/index.html");
+  return <SplitPlanner />;
 }
