@@ -1,8 +1,18 @@
 (() => {
   const KEY = 'just-celebrate-private-planner-v1';
+  const BACKUP_KEY = 'just-celebrate-saved-plan-v1';
   const vendorRoutes = { venue:'venues', music:'djs-music', photography:'photography-video', catering:'catering', cake:'cakes-treats', decor:'decor-balloons', entertainment:'entertainment', transport:'transport' };
 
   try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('fresh') === '1') {
+      const current = localStorage.getItem(KEY);
+      if (current) localStorage.setItem(BACKUP_KEY, current);
+      localStorage.removeItem(KEY);
+      window.history.replaceState({}, '', '/');
+      window.location.reload();
+      return;
+    }
     const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (saved && typeof saved === 'object') {
       saved.portalTab = 'suppliers';
@@ -34,8 +44,13 @@
     } catch {}
   }
 
-  function vendorUrl(service) {
-    return `/planner#vendors-${vendorRoutes[service]}`;
+  function vendorUrl(service) { return `/planner#vendors-${vendorRoutes[service]}`; }
+
+  function connectHomeLogos() {
+    document.querySelectorAll('a.brand').forEach(el => {
+      el.href = '/?fresh=1';
+      el.title = 'Start a new celebration';
+    });
   }
 
   function connectServiceCards() {
@@ -67,9 +82,7 @@
     if (!target) return;
     const service = target.dataset.plannerVendorService;
     if (!service || !vendorRoutes[service]) return;
-    event.preventDefault();
-    saveService(service);
-    window.location.href = vendorUrl(service);
+    event.preventDefault(); saveService(service); window.location.href = vendorUrl(service);
   }, true);
 
   document.addEventListener('click', event => {
@@ -77,39 +90,19 @@
     if (!target) return;
     const service = target.dataset.vendorService;
     if (!service || !vendorRoutes[service]) return;
-    event.preventDefault();
-    saveService(service);
-    window.location.href = vendorUrl(service);
+    event.preventDefault(); saveService(service); window.location.href = vendorUrl(service);
   }, true);
 
   function removeChecklistUI() {
-    document.querySelectorAll('button,a,[role="tab"]').forEach(el => {
-      if ((el.textContent || '').trim().toLowerCase().includes('checklist')) el.remove();
-    });
-    document.querySelectorAll('.summary-totals > div').forEach(el => {
-      if ((el.textContent || '').toLowerCase().includes('tasks complete')) el.remove();
-    });
-    document.querySelectorAll('h2,h3,h4,p').forEach(el => {
-      const text = (el.textContent || '').trim().toLowerCase();
-      if (!text.includes('checklist')) return;
-      const panel = el.closest('.portal-panel,.checklist-panel,.task-panel');
-      if (panel) panel.remove();
-    });
+    document.querySelectorAll('button,a,[role="tab"]').forEach(el => { if ((el.textContent || '').trim().toLowerCase().includes('checklist')) el.remove(); });
+    document.querySelectorAll('.summary-totals > div').forEach(el => { if ((el.textContent || '').toLowerCase().includes('tasks complete')) el.remove(); });
+    document.querySelectorAll('h2,h3,h4,p').forEach(el => { const text=(el.textContent||'').trim().toLowerCase(); if(!text.includes('checklist'))return; const panel=el.closest('.portal-panel,.checklist-panel,.task-panel'); if(panel)panel.remove(); });
   }
 
   function clarifyServicesHeading() {
-    document.querySelectorAll('.panel-heading,h2').forEach(el => {
-      if ((el.textContent || '').trim() === 'What would make it yours?') el.textContent = 'What do you need for your celebration?';
-    });
+    document.querySelectorAll('.panel-heading,h2').forEach(el => { if ((el.textContent || '').trim() === 'What would make it yours?') el.textContent = 'What do you need for your celebration?'; });
   }
 
-  function enhance() {
-    removeChecklistUI();
-    clarifyServicesHeading();
-    connectServiceCards();
-    connectVendorButtons();
-  }
-
-  enhance();
-  new MutationObserver(enhance).observe(document.body, { childList:true, subtree:true });
+  function enhance() { removeChecklistUI(); clarifyServicesHeading(); connectHomeLogos(); connectServiceCards(); connectVendorButtons(); }
+  enhance(); new MutationObserver(enhance).observe(document.body,{childList:true,subtree:true});
 })();
