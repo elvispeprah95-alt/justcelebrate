@@ -15,6 +15,8 @@
       localStorage.removeItem(KEY);
       localStorage.removeItem(SUPPLIERS_KEY);
       localStorage.removeItem('just-celebrate-service-status-v1');
+      localStorage.removeItem('just-celebrate-enquiry-draft');
+      localStorage.removeItem('just-celebrate-enquiry-batch-v1');
       window.history.replaceState({}, '', '/');
       window.location.reload();
       return;
