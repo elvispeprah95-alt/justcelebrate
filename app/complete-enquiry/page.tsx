@@ -18,6 +18,7 @@ type EnquiryDraft = {
 };
 
 const ENQUIRY_DRAFT_KEY = "just-celebrate-enquiry-draft";
+const ENQUIRY_BATCH_KEY = "just-celebrate-enquiry-batch-v1";
 
 export default function CompleteEnquiryPage() {
   const router = useRouter();
@@ -33,65 +34,74 @@ export default function CompleteEnquiryPage() {
       if (!user) return;
       started.current = true;
 
+      const savedBatch = localStorage.getItem(ENQUIRY_BATCH_KEY);
       const savedDraft = localStorage.getItem(ENQUIRY_DRAFT_KEY);
-      if (!savedDraft) {
+      if (!savedBatch && !savedDraft) {
         setFailed(true);
         setStatus("We couldn't find the enquiry details on this device. Please return to the vendor and try again.");
         return;
       }
 
-      let draft: EnquiryDraft;
+      let drafts: EnquiryDraft[];
       try {
-        draft = JSON.parse(savedDraft) as EnquiryDraft;
+        const batch = savedBatch ? JSON.parse(savedBatch) : [JSON.parse(savedDraft || "")];
+        if (!Array.isArray(batch) || !batch.length) throw new Error("Invalid enquiry batch");
+        drafts = batch as EnquiryDraft[];
       } catch {
         setFailed(true);
         setStatus("The saved enquiry is invalid. Please return to the vendor and try again.");
         return;
       }
 
-      if (user.email?.toLowerCase() !== draft.customerEmail.toLowerCase()) {
+      if (drafts.some((draft) => user.email?.toLowerCase() !== draft.customerEmail.toLowerCase())) {
         setFailed(true);
         setStatus("Please open the confirmation link sent to the same email address used for the enquiry.");
         return;
       }
 
-      const { data: conversation, error: conversationError } = await supabase
-        .from("conversations")
-        .insert({
-          customer_id: user.id,
-          vendor_external_id: draft.vendorId,
-          vendor_name: draft.vendorName,
-          vendor_email: draft.vendorEmail,
-          subject: draft.subject,
-          event_date: draft.eventDate || null,
-          event_location: draft.eventLocation || null,
-        })
-        .select("id")
-        .single();
+      let sent = 0;
+      for (const draft of drafts) {
+        const { data: conversation, error: conversationError } = await supabase
+          .from("conversations")
+          .insert({
+            customer_id: user.id,
+            vendor_external_id: draft.vendorId,
+            vendor_name: draft.vendorName,
+            vendor_email: draft.vendorEmail,
+            subject: draft.subject,
+            event_date: draft.eventDate || null,
+            event_location: draft.eventLocation || null,
+          })
+          .select("id")
+          .single();
 
-      if (conversationError || !conversation) {
-        setFailed(true);
-        setStatus("We couldn't create your enquiry. Please return to the vendor and try again.");
-        return;
-      }
+        if (conversationError || !conversation) {
+          setFailed(true);
+          setStatus(sent ? `${sent} enquir${sent === 1 ? "y was" : "ies were"} sent, but we couldn't send the rest. Please open your inbox before trying again.` : "We couldn't create your enquiry. Please return to the vendor and try again.");
+          return;
+        }
 
-      const { error: messageError } = await supabase.from("messages").insert({
-        conversation_id: conversation.id,
-        sender_id: user.id,
-        sender_type: "customer",
-        body: draft.message,
-      });
+        const { error: messageError } = await supabase.from("messages").insert({
+          conversation_id: conversation.id,
+          sender_id: user.id,
+          sender_type: "customer",
+          body: draft.message,
+        });
 
-      if (messageError) {
-        setFailed(true);
-        setStatus("Your conversation was created, but the message could not be sent. Please open your inbox and try again.");
-        return;
+        if (messageError) {
+          setFailed(true);
+          setStatus(sent ? `${sent} enquir${sent === 1 ? "y was" : "ies were"} sent, but one message needs attention in your inbox.` : "Your conversation was created, but the message could not be sent. Please open your inbox and try again.");
+          return;
+        }
+        sent += 1;
+        if (savedBatch) localStorage.setItem(ENQUIRY_BATCH_KEY, JSON.stringify(drafts.slice(sent)));
       }
 
       localStorage.removeItem(ENQUIRY_DRAFT_KEY);
-      setStatus("Your enquiry has been sent. Opening your private inbox…");
+      localStorage.removeItem(ENQUIRY_BATCH_KEY);
+      setStatus(`${sent} enquir${sent === 1 ? "y has" : "ies have"} been sent. Opening your private inbox…`);
       window.setTimeout(() => {
-        router.push(`/messages?conversation=${conversation.id}`);
+        router.push("/messages");
       }, 900);
     }
 
