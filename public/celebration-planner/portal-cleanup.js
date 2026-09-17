@@ -1,14 +1,20 @@
 (() => {
   const KEY = 'just-celebrate-private-planner-v1';
   const BACKUP_KEY = 'just-celebrate-saved-plan-v1';
+  const SUPPLIERS_KEY = 'just-celebrate-suppliers';
+  const SUPPLIERS_BACKUP_KEY = 'just-celebrate-saved-suppliers-v1';
   const vendorRoutes = { venue:'venues', music:'djs-music', photography:'photography-video', catering:'catering', cake:'cakes-treats', decor:'decor-balloons', entertainment:'entertainment', transport:'transport' };
 
   try {
     const params = new URLSearchParams(window.location.search);
     if (params.get('fresh') === '1') {
       const current = localStorage.getItem(KEY);
+      const suppliers = localStorage.getItem(SUPPLIERS_KEY);
       if (current) localStorage.setItem(BACKUP_KEY, current);
+      if (suppliers) localStorage.setItem(SUPPLIERS_BACKUP_KEY, suppliers);
       localStorage.removeItem(KEY);
+      localStorage.removeItem(SUPPLIERS_KEY);
+      localStorage.removeItem('just-celebrate-service-status-v1');
       window.history.replaceState({}, '', '/');
       window.location.reload();
       return;
