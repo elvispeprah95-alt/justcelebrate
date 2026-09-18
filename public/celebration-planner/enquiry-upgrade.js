@@ -36,7 +36,7 @@ function setupVendorLogin(){
     event.preventDefault();
     let dialog=document.querySelector('#jc-vendor-login');
     if(!dialog){dialog=document.createElement('dialog');dialog.id='jc-vendor-login';document.body.appendChild(dialog)}
-    dialog.innerHTML=`<form class="jc-enquiry-card"><div class="jc-enquiry-head"><div><p>JUST CELEBRATE</p><h2>Vendor login</h2></div><button type="button" value="cancel" aria-label="Close">×</button></div><p class="jc-enquiry-note">Enter your business email and we’ll send you a secure sign-in link.</p><div class="jc-enquiry-fields"><label>Your business email<input id="jc-vendor-email" type="email" required autocomplete="email" placeholder="you@business.com"></label></div><p id="jc-vendor-feedback" class="jc-enquiry-feedback" hidden aria-live="polite"></p><div class="jc-enquiry-actions"><button type="button" value="cancel" class="secondary">Cancel</button><button type="submit" id="jc-vendor-submit">Email me a login link</button></div></form>`;
+    dialog.innerHTML=`<form class="jc-enquiry-card"><div class="jc-enquiry-head"><div><p>JUST CELEBRATE</p><h2>Vendor login</h2></div><button type="button" value="cancel" aria-label="Close">×</button></div><p class="jc-enquiry-note">Enter your business email and we’ll send you a secure sign-in link.</p><div class="jc-enquiry-fields"><label>Your business email<input id="jc-vendor-email" name="jc_vendor_email" type="email" required autocomplete="off" placeholder="you@business.com"></label></div><p class="jc-enquiry-note">Use the vendor’s email address, not the customer email used to send the enquiry.</p><p id="jc-vendor-feedback" class="jc-enquiry-feedback" hidden aria-live="polite"></p><div class="jc-enquiry-actions"><button type="button" value="cancel" class="secondary">Cancel</button><button type="submit" id="jc-vendor-submit">Email me a login link</button></div></form>`;
     const feedback=(message,error)=>{const box=dialog.querySelector('#jc-vendor-feedback');box.textContent=message;box.hidden=!message;box.classList.toggle('is-error',Boolean(error))};
     dialog.showModal();
     dialog.querySelectorAll('[value="cancel"]').forEach(button=>button.onclick=()=>dialog.close());
@@ -47,7 +47,7 @@ function setupVendorLogin(){
       localStorage.setItem('just-celebrate-post-auth','messages');
       button.disabled=true;button.textContent='Sending link…';
       const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.origin,shouldCreateUser:true,data:{account_type:'vendor'}}});
-      if(error){localStorage.removeItem('just-celebrate-post-auth');feedback("We couldn't send your login link. Please try again.",true);button.disabled=false;button.textContent='Email me a login link';return}
+      if(error){localStorage.removeItem('just-celebrate-post-auth');const reason=String(error.message||'Please try again.');const wait=/rate|too many|security purposes/i.test(reason)?' Please wait a minute before requesting another link.':'';feedback(`We couldn't send your login link: ${reason}${wait}`,true);button.disabled=false;button.textContent='Email me a login link';return}
       feedback('Check your email and open the secure sign-in link.');button.textContent='Link sent ✓';
     };
   });
