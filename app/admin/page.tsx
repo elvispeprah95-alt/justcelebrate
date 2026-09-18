@@ -15,9 +15,19 @@ type Profile = {
 type Conversation = {
   id: string;
   vendor_name: string | null;
+  vendor_email: string | null;
   subject: string;
   status: string;
+  event_date: string | null;
+  event_location: string | null;
   last_message_at: string;
+};
+
+type Message = {
+  id: string;
+  sender_type: "customer" | "vendor";
+  body: string;
+  created_at: string;
 };
 
 export default function AdminPage() {
@@ -30,6 +40,9 @@ export default function AdminPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messageCount, setMessageCount] = useState(0);
   const [vendorCount, setVendorCount] = useState(0);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [conversationMessages, setConversationMessages] = useState<Message[]>([]);
+  const [loadingConversation, setLoadingConversation] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,7 +83,7 @@ export default function AdminPage() {
 
         const [profileResult, conversationResult, messageResult, vendorResult] = await Promise.all([
           supabase.from("profiles").select("id,display_name,email,account_type,created_at").order("created_at", { ascending: false }),
-          supabase.from("conversations").select("id,vendor_name,subject,status,last_message_at").order("last_message_at", { ascending: false }).limit(20),
+          supabase.from("conversations").select("id,vendor_name,vendor_email,subject,status,event_date,event_location,last_message_at").order("last_message_at", { ascending: false }).limit(20),
           supabase.from("messages").select("id", { count: "exact", head: true }),
           fetch(`${vendorDirectoryUrl}/rest/v1/vendor_profiles?status=eq.approved&select=id&limit=1`, {
             headers: {
@@ -135,6 +148,26 @@ export default function AdminPage() {
     window.location.reload();
   }
 
+  async function openConversation(conversation: Conversation) {
+    setSelectedConversation(conversation);
+    setConversationMessages([]);
+    setLoadingConversation(true);
+
+    const { data, error } = await supabase
+      .from("messages")
+      .select("id,sender_type,body,created_at")
+      .eq("conversation_id", conversation.id)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      setNotice("We couldn't load this conversation. Please try again.");
+      setSelectedConversation(null);
+    } else {
+      setConversationMessages((data || []) as Message[]);
+    }
+    setLoadingConversation(false);
+  }
+
   if (loading) return <main className="flex min-h-screen items-center justify-center bg-[#f7f3ea] text-[#0d3835]">Checking your admin access…</main>;
 
   if (!isAdmin) {
@@ -196,6 +229,7 @@ export default function AdminPage() {
                 <div key={conversation.id} className="rounded-2xl bg-[#f7f3ea] p-4">
                   <div className="flex items-start justify-between gap-4"><p className="font-bold">{conversation.vendor_name || "Vendor enquiry"}</p><span className="rounded-full bg-white px-3 py-1 text-xs capitalize">{conversation.status}</span></div>
                   <p className="mt-1 text-sm text-[#65706e]">{conversation.subject}</p>
+                  <button type="button" onClick={() => void openConversation(conversation)} className="mt-4 rounded-xl border border-[#0d3835] bg-white px-4 py-2 text-sm font-bold text-[#0d3835] hover:bg-[#edf4ef]">View conversation</button>
                 </div>
               ))}
             </div>
@@ -214,6 +248,28 @@ export default function AdminPage() {
           </section>
         </div>
       </div>
+
+      {selectedConversation && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0d3835]/55 p-4" role="presentation">
+        <section role="dialog" aria-modal="true" aria-labelledby="conversation-title" className="max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+          <div className="flex items-start justify-between gap-5 border-b border-[#e8e4db] p-6">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#ff655d]">Enquiry conversation</p>
+              <h2 id="conversation-title" className="mt-2 text-2xl font-semibold">{selectedConversation.vendor_name || "Vendor enquiry"}</h2>
+              <p className="mt-1 text-sm text-[#65706e]">{selectedConversation.subject}{selectedConversation.event_location ? ` · ${selectedConversation.event_location}` : ""}{selectedConversation.event_date ? ` · ${new Date(`${selectedConversation.event_date}T00:00:00`).toLocaleDateString("en-GB")}` : ""}</p>
+            </div>
+            <button type="button" onClick={() => setSelectedConversation(null)} className="rounded-xl bg-[#f7f3ea] px-3 py-2 text-sm font-bold text-[#0d3835]">Close</button>
+          </div>
+          <div className="max-h-[58vh] space-y-4 overflow-y-auto bg-[#f7f3ea] p-6">
+            {loadingConversation ? <p className="text-sm text-[#65706e]">Loading messages…</p> : conversationMessages.length === 0 ? <p className="rounded-2xl bg-white p-5 text-sm text-[#65706e]">This enquiry does not have any messages yet.</p> : conversationMessages.map((message) => (
+              <article key={message.id} className={`max-w-[88%] rounded-2xl px-4 py-3 ${message.sender_type === "vendor" ? "mr-auto bg-white text-[#0d3835]" : "ml-auto bg-[#0d3835] text-white"}`}>
+                <p className={`text-xs font-bold uppercase tracking-wide ${message.sender_type === "vendor" ? "text-[#ff655d]" : "text-white/70"}`}>{message.sender_type}</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm leading-6">{message.body}</p>
+                <p className={`mt-2 text-xs ${message.sender_type === "vendor" ? "text-[#65706e]" : "text-white/70"}`}>{new Date(message.created_at).toLocaleString("en-GB")}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      </div>}
     </main>
   );
 }
