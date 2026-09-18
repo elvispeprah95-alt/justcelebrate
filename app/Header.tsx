@@ -13,6 +13,13 @@ export default function Header() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("vendorLogin") === "1") {
+      setShowLogin(true);
+      url.searchParams.delete("vendorLogin");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+
     async function continueLogin() {
       const destination = localStorage.getItem("just-celebrate-post-auth");
       if (destination !== "messages" && destination !== "admin" && destination !== "claim") return;
