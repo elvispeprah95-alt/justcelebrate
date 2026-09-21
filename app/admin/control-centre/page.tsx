@@ -7,7 +7,8 @@ import { supabase } from "../../supabase";
 type Tab = "analytics" | "claims" | "enquiries" | "users" | "reviews" | "notifications" | "activity" | "settings";
 type Profile = { id: string; display_name: string; email: string | null; account_type: string; account_status: string; created_at: string };
 type Conversation = { id: string; customer_id: string; vendor_name: string | null; vendor_email: string | null; subject: string; status: string; last_message_at: string; created_at: string };
-type Claim = { id: string; external_vendor_id: string; vendor_name: string; claimant_email: string; evidence: string; listing_details?: Record<string, string>; status: string; review_note: string; created_at: string };
+type ListingDetails = { business_name?: string; category?: string; town?: string; website?: string; phone?: string; coverage_areas?: string; description?: string; logo_path?: string; work_image_paths?: string[]; [key: string]: unknown };
+type Claim = { id: string; external_vendor_id: string; vendor_name: string; claimant_email: string; evidence: string; listing_details?: ListingDetails; status: string; review_note: string; created_at: string };
 type Review = { id: string; vendor_name: string; rating: number; body: string; report_reason: string; status: string; created_at: string };
 type Activity = { id: string; action: string; entity_type: string; entity_id: string; details: Record<string, unknown>; created_at: string };
 type Settings = { homepage: { announcement: string; show_announcement: boolean }; notifications: { reply_reminder_hours: number; email_admin_for_claims: boolean; email_admin_for_reviews: boolean }; marketplace: { claims_enabled: boolean; reviews_enabled: boolean; featured_vendor_limit: number } };
@@ -71,6 +72,18 @@ export default function AdminControlCentre() {
 
   async function log(action: string, entityType: string, entityId: string, details: Record<string, unknown> = {}) {
     await supabase.from("admin_activity").insert({ admin_id: adminId, action, entity_type: entityType, entity_id: entityId, details });
+  }
+
+  async function openSubmissionMedia(path: string) {
+    const preview = window.open("", "_blank");
+    const { data, error } = await supabase.storage.from("vendor-submissions").createSignedUrl(path, 600);
+    if (error || !data?.signedUrl) {
+      preview?.close();
+      setNotice("That image could not be opened. Please refresh and try again.");
+      return;
+    }
+    if (preview) preview.location.href = data.signedUrl;
+    else window.location.assign(data.signedUrl);
   }
 
   async function updateClaim(id: string, status: "approved" | "rejected") {
@@ -153,7 +166,7 @@ export default function AdminControlCentre() {
         <div className="mt-5 grid gap-5 lg:grid-cols-2"><Panel title="Enquiry pipeline">{["open", "quoted", "booked", "closed"].map((status) => <Metric key={status} label={status} value={conversations.filter((item) => item.status === status).length} />)}</Panel><Panel title="Marketplace health"><Metric label="Active accounts" value={profiles.filter((item) => item.account_status === "active").length} /><Metric label="Vendors registered" value={profiles.filter((item) => item.account_type === "vendor").length} /><Metric label="Pending claims" value={pendingClaims.length} /><Metric label="Pending reviews" value={pendingReviews.length} /></Panel></div>
       </section>}
 
-      {tab === "claims" && <ListPanel title="Vendor claim approvals" empty="No vendor claims are waiting for review.">{claims.map((claim) => <AdminRow key={claim.id} title={claim.vendor_name} meta={`${claim.claimant_email} · ${new Date(claim.created_at).toLocaleDateString()}`} badge={claim.status}><p className="mt-2 text-sm text-[#65706e]">{claim.evidence || "No supporting notes supplied."}</p>{claim.listing_details && Object.keys(claim.listing_details).length > 0 && <div className="mt-3 rounded-xl border border-[#e5ded1] bg-white p-3 text-sm text-[#65706e]"><p><strong className="text-[#0d3835]">New business details</strong></p><p className="mt-1">{claim.listing_details.category} · {claim.listing_details.town}</p>{claim.listing_details.description && <p className="mt-1">{claim.listing_details.description}</p>}{claim.listing_details.website && <p className="mt-1 break-all">{claim.listing_details.website}</p>}{claim.listing_details.coverage_areas && <p className="mt-1">Covers: {claim.listing_details.coverage_areas}</p>}</div>}{claim.status === "pending" && <Actions onApprove={() => void updateClaim(claim.id, "approved")} onReject={() => void updateClaim(claim.id, "rejected")} />}</AdminRow>)}</ListPanel>}
+      {tab === "claims" && <ListPanel title="Vendor claim approvals" empty="No vendor claims are waiting for review.">{claims.map((claim) => <AdminRow key={claim.id} title={claim.vendor_name} meta={`${claim.claimant_email} · ${new Date(claim.created_at).toLocaleDateString()}`} badge={claim.status}><p className="mt-2 text-sm text-[#65706e]">{claim.evidence || "No supporting notes supplied."}</p>{claim.listing_details && Object.keys(claim.listing_details).length > 0 && <div className="mt-3 rounded-xl border border-[#e5ded1] bg-white p-3 text-sm text-[#65706e]"><p><strong className="text-[#0d3835]">New business details</strong></p><p className="mt-1">{claim.listing_details.category} · {claim.listing_details.town}</p>{claim.listing_details.description && <p className="mt-1">{claim.listing_details.description}</p>}{claim.listing_details.website && <p className="mt-1 break-all">{claim.listing_details.website}</p>}{claim.listing_details.coverage_areas && <p className="mt-1">Covers: {claim.listing_details.coverage_areas}</p>}<ClaimMedia details={claim.listing_details} onOpen={(path) => void openSubmissionMedia(path)} /></div>}{claim.status === "pending" && <Actions onApprove={() => void updateClaim(claim.id, "approved")} onReject={() => void updateClaim(claim.id, "rejected")} />}</AdminRow>)}</ListPanel>}
 
       {tab === "enquiries" && <ListPanel title="Enquiry management" empty="No enquiries have been sent yet.">{conversations.map((item) => <AdminRow key={item.id} title={item.vendor_name || "Vendor enquiry"} meta={`${profileMap.get(item.customer_id)?.email || "Customer"} · ${item.subject}`} badge={item.status}><label className="mt-3 block text-sm font-bold">Status <select value={item.status} onChange={(event) => void updateConversation(item.id, event.target.value)} className="ml-2 rounded-xl border border-[#d9d5cc] bg-white px-3 py-2 font-normal"><option>open</option><option>quoted</option><option>booked</option><option>closed</option></select></label></AdminRow>)}</ListPanel>}
 
@@ -168,6 +181,13 @@ export default function AdminControlCentre() {
       {tab === "settings" && <section className="mt-5 grid gap-5 lg:grid-cols-2"><Panel title="Marketplace"><Toggle label="Allow vendor claims" checked={settings.marketplace.claims_enabled} onChange={(value) => setSettings({ ...settings, marketplace: { ...settings.marketplace, claims_enabled: value } })} /><Toggle label="Allow customer reviews" checked={settings.marketplace.reviews_enabled} onChange={(value) => setSettings({ ...settings, marketplace: { ...settings.marketplace, reviews_enabled: value } })} /><NumberField label="Featured vendor limit" value={settings.marketplace.featured_vendor_limit} onChange={(value) => setSettings({ ...settings, marketplace: { ...settings.marketplace, featured_vendor_limit: value } })} /></Panel><Panel title="Alerts and homepage"><Toggle label="Show homepage announcement" checked={settings.homepage.show_announcement} onChange={(value) => setSettings({ ...settings, homepage: { ...settings.homepage, show_announcement: value } })} /><label className="block text-sm font-bold">Announcement<textarea value={settings.homepage.announcement} onChange={(event) => setSettings({ ...settings, homepage: { ...settings.homepage, announcement: event.target.value } })} rows={3} className="mt-2 w-full rounded-xl border border-[#d9d5cc] p-3 font-normal" /></label><NumberField label="Enquiry reminder (hours)" value={settings.notifications.reply_reminder_hours} onChange={(value) => setSettings({ ...settings, notifications: { ...settings.notifications, reply_reminder_hours: value } })} /></Panel><button onClick={() => void saveSettings()} className="rounded-xl bg-[#ff655d] px-5 py-3 font-bold text-white lg:col-span-2">Save all settings</button></section>}
     </div>
   </main>;
+}
+
+function ClaimMedia({ details, onOpen }: { details: ListingDetails; onOpen: (path: string) => void }) {
+  const logoPath = typeof details.logo_path === "string" ? details.logo_path : "";
+  const workImagePaths = Array.isArray(details.work_image_paths) ? details.work_image_paths.filter((path): path is string => typeof path === "string") : [];
+  if (!logoPath && workImagePaths.length === 0) return null;
+  return <div className="mt-3 border-t border-[#e5ded1] pt-3"><p className="text-xs font-bold uppercase tracking-wider text-[#0d3835]">Media submitted</p><div className="mt-2 flex flex-wrap gap-2">{logoPath && <button type="button" onClick={() => onOpen(logoPath)} className="rounded-lg bg-[#103f39] px-3 py-2 text-xs font-bold text-white">Open logo</button>}{workImagePaths.map((path, index) => <button type="button" key={path} onClick={() => onOpen(path)} className="rounded-lg border border-[#b8c8bd] bg-white px-3 py-2 text-xs font-bold text-[#103f39]">Work photo {index + 1}</button>)}</div></div>;
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) { return <section className="rounded-3xl bg-white p-6 shadow-sm"><h2 className="text-xl font-bold">{title}</h2><div className="mt-5 space-y-4">{children}</div></section>; }
