@@ -31,14 +31,14 @@ async function continueVendorLogin(){
   location.replace('/messages');
 }
 function setupVendorLogin(){
-  const trigger=document.querySelector('.vendor-login-link');
+  const trigger=document.querySelector('.vendor-login-link'),isPrivateTest=new URLSearchParams(location.search).get('test')==='1';
   if(!trigger||trigger.dataset.loginReady)return;
   trigger.dataset.loginReady='1';
   trigger.addEventListener('click',event=>{
     event.preventDefault();
     let dialog=document.querySelector('#jc-vendor-login');
     if(!dialog){dialog=document.createElement('dialog');dialog.id='jc-vendor-login';document.body.appendChild(dialog)}
-    dialog.innerHTML=`<form class="jc-enquiry-card"><div class="jc-enquiry-head"><div><p>JUST CELEBRATE</p><h2>Vendor login</h2></div><button type="button" value="cancel" aria-label="Close">×</button></div><p class="jc-enquiry-note">Enter your business email and we’ll send you a secure sign-in link.</p><div class="jc-enquiry-fields"><label>Your business email<input id="jc-vendor-email" name="jc_vendor_email" type="email" required autocomplete="off" placeholder="you@business.com"></label></div><p class="jc-enquiry-note">Use the vendor’s email address, not the customer email used to send the enquiry.</p><p id="jc-vendor-feedback" class="jc-enquiry-feedback" hidden aria-live="polite"></p><div class="jc-enquiry-actions"><button type="button" value="cancel" class="secondary">Cancel</button><button type="submit" id="jc-vendor-submit">Email me a login link</button></div></form>`;
+    dialog.innerHTML=`<form class="jc-enquiry-card"><div class="jc-enquiry-head"><div><p>JUST CELEBRATE</p><h2>Vendor login</h2></div><button type="button" value="cancel" aria-label="Close">×</button></div><p class="jc-enquiry-note">Enter your business email and we’ll send you a secure sign-in link.</p><div class="jc-enquiry-fields"><label>Your business email<input id="jc-vendor-email" name="jc_vendor_email" type="email" required autocomplete="off" placeholder="you@business.com" value="${isPrivateTest?TEST_VENDOR.email:''}" ${isPrivateTest?'readonly':''}></label></div><p class="jc-enquiry-note">${isPrivateTest?'Private test mode: this will securely sign in as Just Celebrate Test Vendor.':'Use the vendor’s email address, not the customer email used to send the enquiry.'}</p><p id="jc-vendor-feedback" class="jc-enquiry-feedback" hidden aria-live="polite"></p><div class="jc-enquiry-actions"><button type="button" value="cancel" class="secondary">Cancel</button><button type="submit" id="jc-vendor-submit">Email me a login link</button></div></form>`;
     const feedback=(message,error)=>{const box=dialog.querySelector('#jc-vendor-feedback');box.textContent=message;box.hidden=!message;box.classList.toggle('is-error',Boolean(error))};
     dialog.showModal();
     dialog.querySelectorAll('[value="cancel"]').forEach(button=>button.onclick=()=>dialog.close());
