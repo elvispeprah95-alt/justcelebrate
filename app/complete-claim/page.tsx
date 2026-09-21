@@ -3,10 +3,42 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
+import { deletePendingListingMedia, readPendingListingMedia } from "../claim-business/media-draft";
 
-type ListingDetails = { business_name: string; category: string; town: string; website: string; phone: string; coverage_areas: string; description: string };
-type ClaimDraft = { kind?: "claim" | "new"; externalVendorId: string; vendorName: string; claimantEmail: string; evidence: string; listingDetails?: ListingDetails };
+type ListingDetails = { business_name: string; category: string; town: string; website: string; phone: string; coverage_areas: string; description: string; logo_path?: string; work_image_paths?: string[] };
+type ClaimDraft = { kind?: "claim" | "new"; externalVendorId: string; vendorName: string; claimantEmail: string; evidence: string; listingDetails?: ListingDetails; mediaDraftId?: string };
 const CLAIM_DRAFT_KEY = "just-celebrate-claim-draft";
+
+function extensionFor(file: File) {
+  if (file.type === "image/png") return "png";
+  if (file.type === "image/webp") return "webp";
+  return "jpg";
+}
+
+async function uploadListingMedia(userId: string, draft: ClaimDraft): Promise<ListingDetails | undefined> {
+  if (!draft.mediaDraftId) return draft.listingDetails;
+  const media = await readPendingListingMedia(draft.mediaDraftId);
+  if (!media.logo && media.workImages.length === 0) return draft.listingDetails;
+
+  const basePath = `claims/${userId}/${draft.externalVendorId}`;
+  let logoPath = "";
+  const workImagePaths: string[] = [];
+
+  if (media.logo) {
+    logoPath = `${basePath}/logo.${extensionFor(media.logo)}`;
+    const { error } = await supabase.storage.from("vendor-submissions").upload(logoPath, media.logo, { contentType: media.logo.type, cacheControl: "3600", upsert: true });
+    if (error) throw error;
+  }
+
+  for (const [index, image] of media.workImages.entries()) {
+    const path = `${basePath}/work-${index + 1}.${extensionFor(image)}`;
+    const { error } = await supabase.storage.from("vendor-submissions").upload(path, image, { contentType: image.type, cacheControl: "3600", upsert: true });
+    if (error) throw error;
+    workImagePaths.push(path);
+  }
+
+  return { ...draft.listingDetails, ...(logoPath ? { logo_path: logoPath } : {}), ...(workImagePaths.length ? { work_image_paths: workImagePaths } : {}) };
+}
 
 export default function CompleteClaimPage() {
   const [status, setStatus] = useState("Verifying your business request…");
@@ -30,9 +62,18 @@ export default function CompleteClaimPage() {
 
       const { data: existing } = await supabase.from("vendor_claims").select("id,status").eq("external_vendor_id", draft.externalVendorId).eq("submitted_by", user.id).maybeSingle();
       if (!existing) {
-        const { error } = await supabase.from("vendor_claims").insert({ external_vendor_id: draft.externalVendorId, vendor_name: draft.vendorName, claimant_email: user.email.toLowerCase(), evidence: draft.evidence, listing_details: draft.listingDetails || {}, submitted_by: user.id });
+        let listingDetails = draft.listingDetails;
+        if (isNew && draft.mediaDraftId) {
+          try {
+            listingDetails = await uploadListingMedia(user.id, draft);
+          } catch {
+            return setStatus("We verified your email, but couldn't upload your images. Please return to the business form, choose them again and submit once more.");
+          }
+        }
+        const { error } = await supabase.from("vendor_claims").insert({ external_vendor_id: draft.externalVendorId, vendor_name: draft.vendorName, claimant_email: user.email.toLowerCase(), evidence: draft.evidence, listing_details: listingDetails || {}, submitted_by: user.id });
         if (error) return setStatus(isNew ? "We verified your email, but couldn't submit your listing. Please try again." : "We verified your email, but couldn't submit the claim. Please try again.");
       }
+      if (draft.mediaDraftId) await deletePendingListingMedia(draft.mediaDraftId);
       localStorage.removeItem(CLAIM_DRAFT_KEY);
       localStorage.removeItem("just-celebrate-post-auth");
       setComplete(true);
