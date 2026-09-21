@@ -21,16 +21,14 @@ Deno.serve(async (req) => {
   if (!authHeader) return response({ error: "Please confirm your email first." }, 401);
 
   const url = Deno.env.get("SUPABASE_URL");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!url || !anonKey || !serviceKey) return response({ error: "Service configuration is unavailable." }, 500);
-
-  const auth = createClient(url, anonKey, { global: { headers: { Authorization: authHeader } } });
-  const { data: authData, error: authError } = await auth.auth.getUser();
-  const user = authData.user;
-  if (authError || !user?.email) return response({ error: "Please confirm your email first." }, 401);
+  if (!url || !serviceKey) return response({ error: "Service configuration is unavailable." }, 500);
 
   const db = createClient(url, serviceKey);
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const { data: authData, error: authError } = await db.auth.getUser(token);
+  const user = authData.user;
+  if (authError || !user?.email) return response({ error: "Please confirm your email first." }, 401);
   const now = new Date().toISOString();
   await db.from("pending_enquiry_drafts").delete().lt("expires_at", now);
 
