@@ -10,6 +10,7 @@ async function stageEnquiry(supabase,customerEmail,batch){const {error}=await su
 const TEST_VENDOR={id:'manual-test-just-celebrate',business_name:'Just Celebrate Test Vendor',email:'elvispeprah95+vendor@gmail.com',town:'London'};
 function addPrivateTestVendor(){
   if(new URLSearchParams(location.search).get('test')!=='1')return;
+  try{localStorage.setItem('just-celebrate-private-test-mode','1')}catch{}
   const plan=read(PLAN,{});
   if(!plan||plan.version!==1||!Array.isArray(plan.services)||!Array.isArray(plan.suppliers))return;
   if(!plan.services.includes('music'))plan.services.push('music');
@@ -31,7 +32,7 @@ async function continueVendorLogin(){
   location.replace('/messages');
 }
 function setupVendorLogin(){
-  const trigger=document.querySelector('.vendor-login-link'),isPrivateTest=new URLSearchParams(location.search).get('test')==='1';
+  const trigger=document.querySelector('.vendor-login-link'),isPrivateTest=new URLSearchParams(location.search).get('test')==='1'||localStorage.getItem('just-celebrate-private-test-mode')==='1';
   if(!trigger||trigger.dataset.loginReady)return;
   trigger.dataset.loginReady='1';
   trigger.addEventListener('click',event=>{
