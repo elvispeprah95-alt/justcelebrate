@@ -5,21 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../supabase";
 
-type EnquiryDraft = {
-  vendorId: string;
-  vendorName: string;
-  vendorEmail: string;
-  customerName: string;
-  customerEmail: string;
-  subject: string;
-  eventDate: string;
-  eventLocation: string;
-  message: string;
-};
-
-const ENQUIRY_DRAFT_KEY = "just-celebrate-enquiry-draft";
-const ENQUIRY_BATCH_KEY = "just-celebrate-enquiry-batch-v1";
-
 export default function CompleteEnquiryPage() {
   const router = useRouter();
   const started = useRef(false);
@@ -34,79 +19,32 @@ export default function CompleteEnquiryPage() {
       if (!user) return;
       started.current = true;
 
-      const savedBatch = localStorage.getItem(ENQUIRY_BATCH_KEY);
-      const savedDraft = localStorage.getItem(ENQUIRY_DRAFT_KEY);
-      if (!savedBatch && !savedDraft) {
+      const { data, error } = await supabase.functions.invoke("complete-enquiry", { body: {} });
+      if (error) {
         setFailed(true);
-        setStatus("We couldn't find the enquiry details on this device. Please return to the vendor and try again.");
+        setStatus("We couldn't send your enquiry. Please return to your planning portal and try again.");
         return;
       }
 
-      let drafts: EnquiryDraft[];
-      try {
-        const batch = savedBatch ? JSON.parse(savedBatch) : [JSON.parse(savedDraft || "")];
-        if (!Array.isArray(batch) || !batch.length) throw new Error("Invalid enquiry batch");
-        drafts = batch as EnquiryDraft[];
-      } catch {
+      if (data?.status === "empty" || data?.status === "already_processed") {
         setFailed(true);
-        setStatus("The saved enquiry is invalid. Please return to the vendor and try again.");
+        setStatus("We couldn't find a pending enquiry for this email. Please return to your planning portal and start again.");
         return;
       }
 
-      if (drafts.some((draft) => user.email?.toLowerCase() !== draft.customerEmail.toLowerCase())) {
+      if (data?.status !== "sent") {
         setFailed(true);
-        setStatus("Please open the confirmation link sent to the same email address used for the enquiry.");
+        setStatus(data?.error || "Your enquiry needs attention. Please return to your planning portal and try again.");
         return;
       }
 
-      let sent = 0;
-      for (const draft of drafts) {
-        const { data: conversation, error: conversationError } = await supabase
-          .from("conversations")
-          .insert({
-            customer_id: user.id,
-            vendor_external_id: draft.vendorId,
-            vendor_name: draft.vendorName,
-            vendor_email: draft.vendorEmail,
-            subject: draft.subject,
-            event_date: draft.eventDate || null,
-            event_location: draft.eventLocation || null,
-          })
-          .select("id")
-          .single();
-
-        if (conversationError || !conversation) {
-          setFailed(true);
-          setStatus(sent ? `${sent} enquir${sent === 1 ? "y was" : "ies were"} sent, but we couldn't send the rest. Please open your inbox before trying again.` : "We couldn't create your enquiry. Please return to the vendor and try again.");
-          return;
-        }
-
-        const { error: messageError } = await supabase.from("messages").insert({
-          conversation_id: conversation.id,
-          sender_id: user.id,
-          sender_type: "customer",
-          body: draft.message,
-        });
-
-        if (messageError) {
-          setFailed(true);
-          setStatus(sent ? `${sent} enquir${sent === 1 ? "y was" : "ies were"} sent, but one message needs attention in your inbox.` : "Your conversation was created, but the message could not be sent. Please open your inbox and try again.");
-          return;
-        }
-        sent += 1;
-        if (savedBatch) localStorage.setItem(ENQUIRY_BATCH_KEY, JSON.stringify(drafts.slice(sent)));
-      }
-
-      localStorage.removeItem(ENQUIRY_DRAFT_KEY);
-      localStorage.removeItem(ENQUIRY_BATCH_KEY);
-      setStatus(`${sent} enquir${sent === 1 ? "y has" : "ies have"} been sent. Opening your private inbox…`);
-      window.setTimeout(() => {
-        router.push("/messages");
-      }, 900);
+      const count = Number(data.count || 0);
+      setStatus(`${count} enquir${count === 1 ? "y has" : "ies have"} been sent. Opening your private inbox…`);
+      window.setTimeout(() => router.push("/messages"), 900);
     }
 
-    completeEnquiry();
-    const { data: listener } = supabase.auth.onAuthStateChange(() => completeEnquiry());
+    void completeEnquiry();
+    const { data: listener } = supabase.auth.onAuthStateChange(() => void completeEnquiry());
     return () => listener.subscription.unsubscribe();
   }, [router]);
 
@@ -116,7 +54,7 @@ export default function CompleteEnquiryPage() {
         <p className="text-sm font-bold uppercase tracking-[0.25em] text-orange-500">Just Celebrate</p>
         <h1 className="mt-3 text-3xl font-extrabold text-slate-900">{failed ? "Enquiry needs attention" : "Sending your enquiry"}</h1>
         <p className="mt-4 leading-7 text-slate-600">{status}</p>
-        {failed && <Link href="/#vendors" className="mt-6 inline-flex rounded-xl bg-orange-500 px-5 py-3 font-semibold text-white hover:bg-orange-600">Return to vendors</Link>}
+        {failed && <Link href="/celebration-planner/index.html#planner" className="mt-6 inline-flex rounded-xl bg-orange-500 px-5 py-3 font-semibold text-white hover:bg-orange-600">Return to my plan</Link>}
       </div>
     </main>
   );
