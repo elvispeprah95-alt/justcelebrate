@@ -15,14 +15,33 @@ export default function CompleteEnquiryPage() {
     async function completeEnquiry() {
       if (started.current) return;
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setFailed(true);
+        setStatus("Your secure session has expired. Please return to your planning portal and request a new link.");
+        return;
+      }
       started.current = true;
 
-      const { data, error } = await supabase.functions.invoke("complete-enquiry", { body: {} });
+      const { data, error } = await supabase.functions.invoke("complete-enquiry", {
+        body: {},
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
       if (error) {
+        let detail = "";
+        const context = (error as { context?: Response }).context;
+        if (context) {
+          try {
+            const payload: unknown = await context.clone().json();
+            if (payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string") {
+              detail = payload.error;
+            }
+          } catch {
+            detail = "";
+          }
+        }
         setFailed(true);
-        setStatus("We couldn't send your enquiry. Please return to your planning portal and try again.");
+        setStatus(detail || "We couldn't send your enquiry. Please return to your planning portal and try again.");
         return;
       }
 
