@@ -21,7 +21,18 @@ Deno.serve(async (req) => {
   if (!authHeader) return response({ error: "Please confirm your email first." }, 401);
 
   const url = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const legacyServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const directSecretKey = Deno.env.get("SUPABASE_SECRET_KEY");
+  let configuredSecretKey = "";
+  try {
+    const keys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}");
+    configuredSecretKey = Object.values(keys).find((value): value is string =>
+      typeof value === "string" && value.length > 20
+    ) || "";
+  } catch {
+    configuredSecretKey = "";
+  }
+  const serviceKey = legacyServiceKey || directSecretKey || configuredSecretKey;
   if (!url || !serviceKey) return response({ error: "Service configuration is unavailable." }, 500);
 
   const db = createClient(url, serviceKey);
