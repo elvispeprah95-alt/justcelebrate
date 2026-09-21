@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { deletePendingListingMedia, readPendingListingMedia } from "../claim-business/media-draft";
 
-type ListingDetails = { business_name: string; category: string; town: string; website: string; phone: string; coverage_areas: string; description: string; logo_path?: string; work_image_paths?: string[] };
+type ListingDetails = { business_name?: string; category?: string; town?: string; website?: string; phone?: string; coverage_areas?: string; description?: string; logo_path?: string; work_image_paths?: string[] };
 type ClaimDraft = { kind?: "claim" | "new"; externalVendorId: string; vendorName: string; claimantEmail: string; evidence: string; listingDetails?: ListingDetails; mediaDraftId?: string };
 const CLAIM_DRAFT_KEY = "just-celebrate-claim-draft";
 
