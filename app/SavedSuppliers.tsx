@@ -49,9 +49,22 @@ function syncPlannerSupplier(vendor:SavedSupplier) {
 export function readSuppliers(): SavedSupplier[] {
   const raw = localStorage.getItem(KEY);
   if (!raw) return [];
-  const value: unknown = JSON.parse(raw);
-  if (!Array.isArray(value) || value.some(v => !v || typeof v.id !== "string" || typeof v.business_name !== "string" || typeof v.category !== "string")) throw new Error("Invalid saved suppliers");
-  return value.map(v => ({ id:v.id, business_name:v.business_name, category:v.category, town:typeof v.town === "string" ? v.town : "", phone:typeof v.phone === "string" ? v.phone : "", email:typeof v.email === "string" ? v.email : "", website:typeof v.website === "string" ? v.website : "" }));
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    // A previous version may have left an incomplete value. Start clean rather
+    // than blocking the planning journey.
+    localStorage.removeItem(KEY);
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    localStorage.removeItem(KEY);
+    return [];
+  }
+  const valid = value.filter((v): v is SavedSupplier => Boolean(v) && typeof v.id === "string" && typeof v.business_name === "string" && typeof v.category === "string");
+  if (valid.length !== value.length) localStorage.setItem(KEY, JSON.stringify(valid));
+  return valid.map(v => ({ id:v.id, business_name:v.business_name, category:v.category, town:typeof v.town === "string" ? v.town : "", phone:typeof v.phone === "string" ? v.phone : "", email:typeof v.email === "string" ? v.email : "", website:typeof v.website === "string" ? v.website : "" }));
 }
 
 function useSuppliers() {
