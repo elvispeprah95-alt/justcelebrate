@@ -25,11 +25,13 @@ const serviceHashes: Record<string, string> = {
 export default function SplitPlanner() {
   const [picked, setPicked] = useState<string[]>([]);
   const [finding, setFinding] = useState(false);
+  const [eventLocation, setEventLocation] = useState("");
 
   useEffect(() => {
     try {
       const plan = JSON.parse(localStorage.getItem(plannerKey) || "{}");
       setPicked(Array.isArray(plan.services) ? plan.services : []);
+      setEventLocation(typeof plan.details?.location === "string" ? plan.details.location : "");
     } catch {}
 
     const hash = window.location.hash.replace("#vendors-", "");
@@ -107,7 +109,7 @@ export default function SplitPlanner() {
               <button type="button" onClick={backToServices} className="rounded-full border border-[#cfd8cb] bg-white px-5 py-3 text-sm font-semibold">← Back to Choose your services</button>
               <Link href="/celebration-planner/index.html#planner" className="rounded-full bg-[#075047] px-5 py-3 text-sm font-semibold text-white">My Planning Portal →</Link>
             </div>
-            <div className="overflow-hidden rounded-[1.6rem] border border-[#dfe3d8] bg-white"><VendorDirectory /></div>
+            <div className="overflow-hidden rounded-[1.6rem] border border-[#dfe3d8] bg-white"><VendorDirectory initialLocation={eventLocation} /></div>
           </section>
         )}
       </div>
