@@ -56,7 +56,7 @@
 
   function connectHomeLogos() {
     document.querySelectorAll('a.brand').forEach(el => {
-      el.href = '/?fresh=1';
+      el.href = '/celebration-planner/index.html?fresh=1';
       el.title = 'Start a new celebration';
     });
   }
