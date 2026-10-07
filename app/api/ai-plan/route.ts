@@ -38,6 +38,36 @@ function toStringList(value: unknown, maximum: number, itemLength: number) {
     .slice(0, maximum);
 }
 
+function serviceId(value: unknown): ServiceId | null {
+  const label = asText(value, 80).toLowerCase();
+  if (SERVICES.includes(label as ServiceId)) return label as ServiceId;
+  if (/venue|location|space/.test(label)) return 'venue';
+  if (/music|dj|band|singer/.test(label)) return 'music';
+  if (/photo|video|film/.test(label)) return 'photography';
+  if (/cater|food|drink/.test(label)) return 'catering';
+  if (/cake|treat|dessert|sweet/.test(label)) return 'cake';
+  if (/decor|balloon|flower|floral/.test(label)) return 'decor';
+  if (/entertain|activity|host|performer|games/.test(label)) return 'entertainment';
+  if (/transport|travel|car|coach/.test(label)) return 'transport';
+  return null;
+}
+
+function parseModelJson(content: string): unknown {
+  const cleaned = content
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '');
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const firstObject = cleaned.indexOf('{');
+    const lastObject = cleaned.lastIndexOf('}');
+    if (firstObject < 0 || lastObject <= firstObject) throw new Error('Invalid JSON response');
+    return JSON.parse(cleaned.slice(firstObject, lastObject + 1));
+  }
+}
+
 function normalisePlan(value: unknown, budget: number | null) {
   if (!value || typeof value !== 'object') return null;
   const plan = value as Record<string, unknown>;
@@ -46,10 +76,10 @@ function normalisePlan(value: unknown, budget: number | null) {
     .map((service) => (service && typeof service === 'object' ? service as Record<string, unknown> : null))
     .filter((service): service is Record<string, unknown> => Boolean(service))
     .map((service) => ({
-      id: SERVICES.includes(service.id as ServiceId) ? service.id as ServiceId : null,
-      reason: asText(service.reason, 180),
+      id: serviceId(service.id ?? service.service ?? service.category),
+      reason: asText(service.reason ?? service.why, 180),
     }))
-    .filter((service): service is { id: ServiceId; reason: string } => Boolean(service.id && service.reason))
+    .filter((service): service is { id: ServiceId; reason: string } => Boolean(service.id))
     .filter((service, index, all) => all.findIndex((candidate) => candidate.id === service.id) === index)
     .slice(0, 8);
 
@@ -149,7 +179,7 @@ Choose 3 to 7 services, including only what is genuinely useful. Treat the budge
     const completion = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     const content = completion.choices?.[0]?.message?.content;
     if (!content) throw new Error('Missing model response');
-    const plan = normalisePlan(JSON.parse(content), budget);
+    const plan = normalisePlan(parseModelJson(content), budget);
     if (!plan) throw new Error('Invalid model response');
 
     return NextResponse.json({ plan });
