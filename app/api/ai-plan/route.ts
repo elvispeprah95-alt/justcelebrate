@@ -141,6 +141,8 @@ Choose 3 to 7 services, including only what is genuinely useful. Treat the budge
     });
 
     if (!response.ok) {
+      const details = (await response.text()).slice(0, 500);
+      console.error('AI Gateway request failed', { status: response.status, details });
       return NextResponse.json({ error: 'We could not make your plan just now. Please try again.' }, { status: 502 });
     }
 
@@ -151,7 +153,8 @@ Choose 3 to 7 services, including only what is genuinely useful. Treat the budge
     if (!plan) throw new Error('Invalid model response');
 
     return NextResponse.json({ plan });
-  } catch {
+  } catch (error) {
+    console.error('AI planner response could not be processed', error);
     return NextResponse.json({ error: 'We could not make your plan just now. Please try again.' }, { status: 502 });
   }
 }
