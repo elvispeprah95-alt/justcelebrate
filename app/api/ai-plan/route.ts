@@ -182,8 +182,9 @@ export async function POST(request: NextRequest) {
   const conversationTranscript = messages
     .map((message) => `${message.role === 'assistant' ? 'Just Celebrate AI' : 'Customer'}: ${message.content}`)
     .join('\n');
-  const followUpCount = messages.filter((message) => message.role === 'assistant').length;
-  const mustCreatePlan = conversation && followUpCount >= 1;
+  const customerMessageCount = messages.filter((message) => message.role === 'user').length;
+  // A short discovery exchange makes supplier recommendations much more relevant.
+  const mustCreatePlan = conversation && customerMessageCount >= 2;
   const prompt = conversation && !mustCreatePlan
     ? `You are Just Celebrate AI, a warm, practical UK celebration planner.
 The customer is using a live conversation to shape their celebration.
@@ -192,7 +193,7 @@ Conversation so far:
 ${conversationTranscript || `Customer: ${description}`}
 
 Helpful details: location ${location || 'not provided'}; date ${date || 'not provided'}; guests ${guests ?? 'not provided'}; budget in GBP ${budget ?? 'not provided'}.
-Never ask for an exact address or postcode: a town or area is enough. Location, date, guest count and budget are optional refinements, not reasons to delay a useful plan. If the customer has shared an occasion and a rough feel, theme or priority, make their full plan immediately. You may ask at most one short clarifying question, and only if their first message is too vague to understand the celebration. If ${followUpCount} is 1 or more, you MUST set ready to true and include a complete plan now. Do not ask any further questions.
+Never ask for an exact address or postcode: a town or area is enough. This is the discovery reply, not the plan yet. Acknowledge their idea warmly, then ask the missing parts of this short planning check in one concise message: 1. What rough budget feels comfortable? 2. Which town or area should we look in? 3. Would they like help finding everything, or only certain suppliers (for example venue, food, décor, cake, entertainment, music or photography)? If they already gave any answer, do not repeat that question. Do not create a plan in this reply, even if enough detail is present — use the reply to confirm which suppliers they want help with. Set ready to false and plan to null.
 
 Return concise JSON only:
 {
@@ -216,15 +217,16 @@ Use the conversation to extract details the customer mentions into brief. Never 
 
 When ready, label the core services as "essential" and upgrades as "optional". Include only genuinely useful services. Keep watchOuts practical, specific and reassuring.
 
-If one useful question is still needed, set "ready" to false and set "plan" to null. If ready is true, recommend only these service ids: ${SERVICES.join(', ')}. Choose 3 to 7 services that are genuinely useful. Budget figures are rough planning guides, never quotes.`
+For this discovery reply, always set "ready" to false and "plan" to null. Keep the reply under 90 words and make the questions easy to answer in one message.`
     : `Create a warm, practical plan for this UK celebration.
 
-Celebration idea: ${conversation ? messages.filter((message) => message.role === 'user').map((message) => message.content).join(' ') : description}
+Celebration idea and discovery answers: ${conversation ? messages.filter((message) => message.role === 'user').map((message) => message.content).join(' ') : description}
 Location: ${location || 'Not provided'}
 Date: ${date || 'Not provided'}
 Guests: ${guests ?? 'Not provided'}
 Budget in GBP: ${budget ?? 'Not provided'}
 
+The customer has now completed the quick planning check. Use their budget, area and supplier preferences to think ahead for them: recommend only the services they asked for or genuinely need, explain why, and make the supplier suggestions practical. A service will appear as a link to real Just Celebrate suppliers in their planning portal.
 Recommend only services from this exact list: ${SERVICES.join(', ')}.
 Return a concise JSON object only, with this shape:
 {
@@ -280,12 +282,8 @@ Choose 3 to 7 services, including only what is genuinely useful. Treat the budge
       const modelReply = modelValue && typeof modelValue === 'object'
         ? asText((modelValue as Record<string, unknown>).reply, 700)
         : '';
-      const planValue = modelValue && typeof modelValue === 'object'
-        ? (modelValue as Record<string, unknown>).plan
-        : null;
-      const plan = normalisePlan(planValue, budget);
-      const reply = modelReply || (plan ? 'I’ve shaped a celebration plan around your idea.' : 'Tell me one more little detail and I’ll make this feel more like you.');
-      return NextResponse.json(plan ? { reply, ready: true, plan } : { reply, ready: false });
+      const reply = modelReply || 'Lovely idea. To tailor the plan and the right suppliers, what budget feels comfortable, which area should we look in, and would you like help with everything or only certain suppliers?';
+      return NextResponse.json({ reply, ready: false });
     }
 
     const plan = normalisePlan(modelValue, budget);
