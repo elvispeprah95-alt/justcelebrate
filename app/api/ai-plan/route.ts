@@ -19,10 +19,31 @@ type PlannerInput = {
   date?: unknown;
   guests?: unknown;
   budget?: unknown;
+  mode?: unknown;
+  messages?: unknown;
+};
+
+type ConversationMessage = {
+  role: 'user' | 'assistant';
+  content: string;
 };
 
 const asText = (value: unknown, maxLength: number) =>
   typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
+
+function readMessages(value: unknown): ConversationMessage[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((message) => {
+      if (!message || typeof message !== 'object') return null;
+      const item = message as Record<string, unknown>;
+      const role = item.role === 'assistant' ? 'assistant' : item.role === 'user' ? 'user' : null;
+      const content = asText(item.content, 1400);
+      return role && content ? { role, content } : null;
+    })
+    .filter((message): message is ConversationMessage => Boolean(message))
+    .slice(-8);
+}
 
 const asPositiveNumber = (value: unknown, maximum: number) => {
   const number = typeof value === 'number' ? value : Number(value);
@@ -114,11 +135,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Please tell us a little about your celebration.' }, { status: 400 });
   }
 
-  const description = asText(body.description, 2000);
-  if (description.length < 8) {
+  const conversation = asText(body.mode, 30) === 'conversation';
+  const messages = readMessages(body.messages);
+  const latestUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content || '';
+  const description = asText(body.description, 2000) || latestUserMessage;
+  if (description.length < (conversation ? 3 : 8)) {
     return NextResponse.json({ error: 'Please add a little more detail so we can make useful suggestions.' }, { status: 400 });
   }
-
   const location = asText(body.location, 150);
   const date = asText(body.date, 30);
   const guests = asPositiveNumber(body.guests, 999999);
@@ -129,7 +152,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'The AI planner is not connected yet. Please try again shortly.' }, { status: 503 });
   }
 
-  const prompt = `Create a warm, practical plan for this UK celebration.
+  const conversationTranscript = messages
+    .map((message) => `${message.role === 'assistant' ? 'Just Celebrate AI' : 'Customer'}: ${message.content}`)
+    .join('\n');
+  const followUpCount = messages.filter((message) => message.role === 'assistant').length;
+  const prompt = conversation
+    ? `You are Just Celebrate AI, a warm, practical UK celebration planner.
+The customer is using a live conversation to shape their celebration.
+
+Conversation so far:
+${conversationTranscript || `Customer: ${description}`}
+
+Helpful details: location ${location || 'not provided'}; date ${date || 'not provided'}; guests ${guests ?? 'not provided'}; budget in GBP ${budget ?? 'not provided'}.
+Ask only one genuinely useful question at a time. Ask no more than two follow-up questions in total. Do not ask for details already shared. If the customer has shared an occasion and a rough feel, theme or priority — or if ${followUpCount} is 2 or more — make their full plan now, even if location, date, guest count or budget are missing.
+
+Return concise JSON only:
+{
+  "reply": "A warm, helpful reply of no more than 70 words.",
+  "ready": true,
+  "plan": {
+    "title": "short plan title",
+    "occasion": "occasion type",
+    "theme": "short style direction",
+    "summary": "2 short sentences",
+    "keyMoments": ["up to 4 concrete ideas"],
+    "services": [{"id": "one permitted service id", "reason": "why it matters"}],
+    "budget": [{"label": "short category", "amount": 0}]
+  }
+}
+
+If one useful question is still needed, set "ready" to false and set "plan" to null. If ready is true, recommend only these service ids: ${SERVICES.join(', ')}. Choose 3 to 7 services that are genuinely useful. Budget figures are rough planning guides, never quotes.`
+    : `Create a warm, practical plan for this UK celebration.
 
 Celebration idea: ${description}
 Location: ${location || 'Not provided'}
@@ -179,7 +232,21 @@ Choose 3 to 7 services, including only what is genuinely useful. Treat the budge
     const completion = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     const content = completion.choices?.[0]?.message?.content;
     if (!content) throw new Error('Missing model response');
-    const plan = normalisePlan(parseModelJson(content), budget);
+    const modelValue = parseModelJson(content);
+
+    if (conversation) {
+      const modelReply = modelValue && typeof modelValue === 'object'
+        ? asText((modelValue as Record<string, unknown>).reply, 700)
+        : '';
+      const planValue = modelValue && typeof modelValue === 'object'
+        ? (modelValue as Record<string, unknown>).plan
+        : null;
+      const plan = normalisePlan(planValue, budget);
+      const reply = modelReply || (plan ? 'I’ve shaped a celebration plan around your idea.' : 'Tell me one more little detail and I’ll make this feel more like you.');
+      return NextResponse.json(plan ? { reply, ready: true, plan } : { reply, ready: false });
+    }
+
+    const plan = normalisePlan(modelValue, budget);
     if (!plan) throw new Error('Invalid model response');
 
     return NextResponse.json({ plan });
