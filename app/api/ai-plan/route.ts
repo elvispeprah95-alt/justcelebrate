@@ -99,8 +99,9 @@ function normalisePlan(value: unknown, budget: number | null) {
     .map((service) => ({
       id: serviceId(service.id ?? service.service ?? service.category),
       reason: asText(service.reason ?? service.why, 180),
+      priority: asText(service.priority, 20).toLowerCase() === 'optional' ? 'optional' as const : 'essential' as const,
     }))
-    .filter((service): service is { id: ServiceId; reason: string } => Boolean(service.id))
+    .filter((service): service is { id: ServiceId; reason: string; priority: 'essential' | 'optional' } => Boolean(service.id))
     .filter((service, index, all) => all.findIndex((candidate) => candidate.id === service.id) === index)
     .slice(0, 8);
 
@@ -124,6 +125,8 @@ function normalisePlan(value: unknown, budget: number | null) {
     keyMoments: toStringList(plan.keyMoments, 4, 140),
     services,
     budget: budgetItems,
+    budgetAdvice: asText(plan.budgetAdvice, 180),
+    watchOuts: toStringList(plan.watchOuts, 3, 140),
   };
 }
 
@@ -177,10 +180,14 @@ Return concise JSON only:
     "theme": "short style direction",
     "summary": "2 short sentences",
     "keyMoments": ["up to 4 concrete ideas"],
-    "services": [{"id": "one permitted service id", "reason": "why it matters"}],
-    "budget": [{"label": "short category", "amount": 0}]
+    "services": [{"id": "one permitted service id", "reason": "why it matters", "priority": "essential or optional"}],
+    "budget": [{"label": "short category", "amount": 0}],
+    "budgetAdvice": "short helpful budget advice if no budget was supplied",
+    "watchOuts": ["up to 3 practical things the customer may otherwise miss"]
   }
 }
+
+When ready, label the core services as "essential" and upgrades as "optional". Include only genuinely useful services. Keep watchOuts practical, specific and reassuring.
 
 If one useful question is still needed, set "ready" to false and set "plan" to null. If ready is true, recommend only these service ids: ${SERVICES.join(', ')}. Choose 3 to 7 services that are genuinely useful. Budget figures are rough planning guides, never quotes.`
     : `Create a warm, practical plan for this UK celebration.
@@ -199,9 +206,13 @@ Return a concise JSON object only, with this shape:
   "theme": "short style direction",
   "summary": "2 short sentences explaining the plan",
   "keyMoments": ["up to 4 concrete ideas"],
-  "services": [{"id": "one permitted service id", "reason": "why it matters for this celebration"}],
-  "budget": [{"label": "short category", "amount": 0}]
+  "services": [{"id": "one permitted service id", "reason": "why it matters for this celebration", "priority": "essential or optional"}],
+  "budget": [{"label": "short category", "amount": 0}],
+  "budgetAdvice": "short helpful budget advice if no budget was supplied",
+  "watchOuts": ["up to 3 practical things the customer may otherwise miss"]
 }
+
+Label core services as "essential" and upgrades as "optional". Include practical watchOuts that help the customer avoid last-minute stress.
 
 Choose 3 to 7 services, including only what is genuinely useful. Treat the budget as a rough planning guide, never a quote. If a budget is given, include up to 5 budget items that add up approximately to it; otherwise return an empty budget list.`;
 
