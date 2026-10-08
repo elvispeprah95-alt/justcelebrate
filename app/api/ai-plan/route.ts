@@ -127,6 +127,15 @@ function normalisePlan(value: unknown, budget: number | null) {
     budget: budgetItems,
     budgetAdvice: asText(plan.budgetAdvice, 180),
     watchOuts: toStringList(plan.watchOuts, 3, 140),
+    brief: (() => {
+      const rawBrief = plan.brief && typeof plan.brief === 'object' ? plan.brief as Record<string, unknown> : {};
+      return {
+        location: asText(rawBrief.location, 150),
+        guests: asPositiveNumber(rawBrief.guests, 999999),
+        budget: asPositiveNumber(rawBrief.budget, 10000000),
+        date: asText(rawBrief.date, 30),
+      };
+    })(),
   };
 }
 
@@ -183,9 +192,12 @@ Return concise JSON only:
     "services": [{"id": "one permitted service id", "reason": "why it matters", "priority": "essential or optional"}],
     "budget": [{"label": "short category", "amount": 0}],
     "budgetAdvice": "short helpful budget advice if no budget was supplied",
-    "watchOuts": ["up to 3 practical things the customer may otherwise miss"]
+    "watchOuts": ["up to 3 practical things the customer may otherwise miss"],
+    "brief": {"location": "town or area if mentioned", "guests": 0, "budget": 0, "date": "YYYY-MM-DD only if clearly given"}
   }
 }
+
+Use the conversation to extract details the customer mentions into brief. Never invent an exact address, date, guest count or budget; leave missing values blank or 0.
 
 When ready, label the core services as "essential" and upgrades as "optional". Include only genuinely useful services. Keep watchOuts practical, specific and reassuring.
 
@@ -209,8 +221,11 @@ Return a concise JSON object only, with this shape:
   "services": [{"id": "one permitted service id", "reason": "why it matters for this celebration", "priority": "essential or optional"}],
   "budget": [{"label": "short category", "amount": 0}],
   "budgetAdvice": "short helpful budget advice if no budget was supplied",
-  "watchOuts": ["up to 3 practical things the customer may otherwise miss"]
+  "watchOuts": ["up to 3 practical things the customer may otherwise miss"],
+  "brief": {"location": "town or area if mentioned", "guests": 0, "budget": 0, "date": "YYYY-MM-DD only if clearly given"}
 }
+
+Use the celebration idea to extract details mentioned into brief. Never invent exact details; leave missing values blank or 0.
 
 Label core services as "essential" and upgrades as "optional". Include practical watchOuts that help the customer avoid last-minute stress.
 
