@@ -108,7 +108,7 @@ function normalisePlan(value: unknown, budget: number | null) {
   if (services.length < 2) return null;
 
   const rawBudget = Array.isArray(plan.budget) ? plan.budget : [];
-  const budgetItems = budget
+  let budgetItems = budget
     ? rawBudget
       .map((item) => (item && typeof item === 'object' ? item as Record<string, unknown> : null))
       .filter((item): item is Record<string, unknown> => Boolean(item))
@@ -116,6 +116,21 @@ function normalisePlan(value: unknown, budget: number | null) {
       .filter((item): item is { label: string; amount: number } => Boolean(item.label && item.amount))
       .slice(0, 5)
     : [];
+
+  // A planning budget must remain true to the amount the customer gave us.
+  if (budget && budgetItems.length) {
+    const suppliedTotal = budgetItems.reduce((sum, item) => sum + item.amount, 0);
+    if (suppliedTotal > 0 && suppliedTotal !== budget) {
+      let remaining = budget;
+      budgetItems = budgetItems.map((item, index) => {
+        const amount = index === budgetItems.length - 1
+          ? remaining
+          : Math.max(1, Math.round((item.amount / suppliedTotal) * budget));
+        remaining -= amount;
+        return { ...item, amount };
+      });
+    }
+  }
 
   return {
     title: asText(plan.title, 90) || 'A celebration made for you',
