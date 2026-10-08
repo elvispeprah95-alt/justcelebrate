@@ -220,7 +220,9 @@ async function findVendorMatches(
   services: Array<{ id: ServiceId; priority: 'essential' | 'optional' }>,
   location: string,
 ): Promise<VendorMatch[]> {
-  const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
+  const configuredSupabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  // Some environments expose the REST base while others expose the project base.
+  const supabaseUrl = configuredSupabaseUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceKey) return [];
 
