@@ -156,7 +156,8 @@ export async function POST(request: NextRequest) {
     .map((message) => `${message.role === 'assistant' ? 'Just Celebrate AI' : 'Customer'}: ${message.content}`)
     .join('\n');
   const followUpCount = messages.filter((message) => message.role === 'assistant').length;
-  const prompt = conversation
+  const mustCreatePlan = conversation && followUpCount >= 1;
+  const prompt = conversation && !mustCreatePlan
     ? `You are Just Celebrate AI, a warm, practical UK celebration planner.
 The customer is using a live conversation to shape their celebration.
 
@@ -184,7 +185,7 @@ Return concise JSON only:
 If one useful question is still needed, set "ready" to false and set "plan" to null. If ready is true, recommend only these service ids: ${SERVICES.join(', ')}. Choose 3 to 7 services that are genuinely useful. Budget figures are rough planning guides, never quotes.`
     : `Create a warm, practical plan for this UK celebration.
 
-Celebration idea: ${description}
+Celebration idea: ${conversation ? messages.filter((message) => message.role === 'user').map((message) => message.content).join(' ') : description}
 Location: ${location || 'Not provided'}
 Date: ${date || 'Not provided'}
 Guests: ${guests ?? 'Not provided'}
@@ -234,7 +235,7 @@ Choose 3 to 7 services, including only what is genuinely useful. Treat the budge
     if (!content) throw new Error('Missing model response');
     const modelValue = parseModelJson(content);
 
-    if (conversation) {
+    if (conversation && !mustCreatePlan) {
       const modelReply = modelValue && typeof modelValue === 'object'
         ? asText((modelValue as Record<string, unknown>).reply, 700)
         : '';
@@ -249,7 +250,7 @@ Choose 3 to 7 services, including only what is genuinely useful. Treat the budge
     const plan = normalisePlan(modelValue, budget);
     if (!plan) throw new Error('Invalid model response');
 
-    return NextResponse.json({ plan });
+    return NextResponse.json(conversation ? { reply: 'I’ve put together a celebration plan around everything you shared.', ready: true, plan } : { plan });
   } catch (error) {
     console.error('AI planner response could not be processed', error);
     return NextResponse.json({ error: 'We could not make your plan just now. Please try again.' }, { status: 502 });
