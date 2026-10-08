@@ -164,7 +164,7 @@ Conversation so far:
 ${conversationTranscript || `Customer: ${description}`}
 
 Helpful details: location ${location || 'not provided'}; date ${date || 'not provided'}; guests ${guests ?? 'not provided'}; budget in GBP ${budget ?? 'not provided'}.
-Ask only one genuinely useful question at a time. Ask no more than two follow-up questions in total. Do not ask for details already shared. If the customer has shared an occasion and a rough feel, theme or priority — or if ${followUpCount} is 2 or more — make their full plan now, even if location, date, guest count or budget are missing.
+Never ask for an exact address or postcode: a town or area is enough. Location, date, guest count and budget are optional refinements, not reasons to delay a useful plan. If the customer has shared an occasion and a rough feel, theme or priority, make their full plan immediately. You may ask at most one short clarifying question, and only if their first message is too vague to understand the celebration. If ${followUpCount} is 1 or more, you MUST set ready to true and include a complete plan now. Do not ask any further questions.
 
 Return concise JSON only:
 {
