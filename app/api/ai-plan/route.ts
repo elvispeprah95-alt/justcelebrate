@@ -220,11 +220,12 @@ async function findVendorMatches(
   services: Array<{ id: ServiceId; priority: 'essential' | 'optional' }>,
   location: string,
 ): Promise<VendorMatch[]> {
-  const configuredSupabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const configuredSupabaseUrl = process.env.JUST_CELEBRATE_VENDOR_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  // Use the catalogue's scoped publishable key: RLS exposes only active listings.
+  const catalogueKey = process.env.JUST_CELEBRATE_VENDOR_SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   // Some environments expose the REST base while others expose the project base.
   const supabaseUrl = configuredSupabaseUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceKey) return [];
+  if (!supabaseUrl || !catalogueKey) return [];
 
   try {
     const params = new URLSearchParams({
@@ -234,7 +235,7 @@ async function findVendorMatches(
       limit: '250',
     });
     const response = await fetch(`${supabaseUrl}/rest/v1/vendors?${params.toString()}`, {
-      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+      headers: { apikey: catalogueKey, Authorization: `Bearer ${catalogueKey}` },
       cache: 'no-store',
     });
     if (!response.ok) {
