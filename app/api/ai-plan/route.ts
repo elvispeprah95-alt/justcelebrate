@@ -268,6 +268,7 @@ async function findVendorMatches(
           return bFeatured - aFeatured;
         });
 
+      let matchesForService = 0;
       for (const vendor of candidates) {
         const id = asText(vendor.id, 100);
         const name = asText(vendor.business_name, 120);
@@ -283,9 +284,11 @@ async function findVendorMatches(
           serviceId: service.id,
           local: servesRequestedLocation(vendor, location),
         });
-        break;
+        matchesForService += 1;
+        // A small shortlist keeps each guided decision useful, rather than overwhelming.
+        if (matchesForService >= 3) break;
       }
-      if (matches.length >= 5) break;
+      if (matches.length >= 15) break;
     }
     return matches;
   } catch (error) {
