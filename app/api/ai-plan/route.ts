@@ -239,11 +239,7 @@ async function findVendorMatches(
       cache: 'no-store',
     });
     if (!response.ok) {
-      console.error('Vendor matching failed', {
-        status: response.status,
-        endpoint: new URL(response.url).pathname,
-        details: (await response.text()).slice(0, 160),
-      });
+      console.error('Vendor matching failed', { status: response.status });
       return [];
     }
 
