@@ -13,6 +13,29 @@ const SERVICES = [
 
 type ServiceId = (typeof SERVICES)[number];
 
+type VendorRecord = {
+  id?: unknown;
+  business_name?: unknown;
+  category?: unknown;
+  description?: unknown;
+  town?: unknown;
+  coverage_areas?: unknown;
+  website?: unknown;
+  is_featured?: unknown;
+  services?: unknown;
+};
+
+type VendorMatch = {
+  id: string;
+  name: string;
+  category: string;
+  location: string;
+  description: string;
+  website: string;
+  serviceId: ServiceId;
+  local: boolean;
+};
+
 type PlannerInput = {
   description?: unknown;
   location?: unknown;
@@ -154,6 +177,116 @@ function normalisePlan(value: unknown, budget: number | null) {
   };
 }
 
+
+const VENDOR_SERVICE_TERMS: Record<ServiceId, string[]> = {
+  venue: ['venue', 'marquee', 'hall', 'space'],
+  music: ['dj', 'music', 'band', 'singer', 'live entertainment'],
+  photography: ['photography', 'photographer', 'videography', 'videographer', 'content creator'],
+  catering: ['catering', 'caterer', 'food', 'mobile bar', 'bar'],
+  cake: ['cake', 'cakes', 'treat', 'dessert', 'sweet'],
+  decor: ['decor', 'balloon', 'florist', 'flower', 'event equipment hire', 'event hire', 'party hire'],
+  entertainment: ['entertainment', 'children', 'photo booth', 'performer', 'magician', 'activity'],
+  transport: ['transport', 'car hire', 'coach'],
+};
+
+const normaliseSearchText = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+function vendorText(vendor: VendorRecord) {
+  return normaliseSearchText([
+    asText(vendor.category, 100),
+    asText(vendor.services, 600),
+    asText(vendor.description, 1200),
+  ].join(' '));
+}
+
+function servesRequestedLocation(vendor: VendorRecord, location: string) {
+  const requested = normaliseSearchText(location);
+  if (!requested) return false;
+  const coverage = normaliseSearchText([
+    asText(vendor.town, 150),
+    asText(vendor.coverage_areas, 600),
+  ].join(' '));
+  if (coverage.includes(requested)) return true;
+  const requestedWords = requested.split(' ').filter((word) => word.length > 3);
+  return requestedWords.length > 0 && requestedWords.every((word) => coverage.includes(word));
+}
+
+function matchesService(vendor: VendorRecord, serviceId: ServiceId) {
+  const text = vendorText(vendor);
+  return VENDOR_SERVICE_TERMS[serviceId].some((term) => text.includes(normaliseSearchText(term)));
+}
+
+async function findVendorMatches(
+  services: Array<{ id: ServiceId; priority: 'essential' | 'optional' }>,
+  location: string,
+): Promise<VendorMatch[]> {
+  const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey) return [];
+
+  try {
+    const params = new URLSearchParams({
+      select: 'id,business_name,category,description,town,coverage_areas,website,is_featured,services',
+      is_active: 'eq.true',
+      order: 'is_featured.desc,business_name.asc',
+      limit: '250',
+    });
+    const response = await fetch(`${supabaseUrl}/rest/v1/vendors?${params.toString()}`, {
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      console.error('Vendor matching failed', { status: response.status });
+      return [];
+    }
+
+    const vendors = await response.json() as VendorRecord[];
+    if (!Array.isArray(vendors)) return [];
+    const uniqueServices = services
+      .filter((service, index, all) => all.findIndex((candidate) => candidate.id === service.id) === index)
+      .sort((a, b) => (a.priority === b.priority ? 0 : a.priority === 'essential' ? -1 : 1))
+      .slice(0, 5);
+    const usedVendorIds = new Set<string>();
+    const matches: VendorMatch[] = [];
+
+    for (const service of uniqueServices) {
+      const candidates = vendors
+        .filter((vendor) => matchesService(vendor, service.id))
+        .sort((a, b) => {
+          const aLocal = servesRequestedLocation(a, location) ? 1 : 0;
+          const bLocal = servesRequestedLocation(b, location) ? 1 : 0;
+          if (aLocal !== bLocal) return bLocal - aLocal;
+          const aFeatured = a.is_featured === true ? 1 : 0;
+          const bFeatured = b.is_featured === true ? 1 : 0;
+          return bFeatured - aFeatured;
+        });
+
+      for (const vendor of candidates) {
+        const id = asText(vendor.id, 100);
+        const name = asText(vendor.business_name, 120);
+        if (!id || !name || usedVendorIds.has(id)) continue;
+        usedVendorIds.add(id);
+        matches.push({
+          id,
+          name,
+          category: asText(vendor.category, 80) || 'Celebration supplier',
+          location: asText(vendor.town, 100) || asText(vendor.coverage_areas, 160),
+          description: asText(vendor.description, 220),
+          website: asText(vendor.website, 300),
+          serviceId: service.id,
+          local: servesRequestedLocation(vendor, location),
+        });
+        break;
+      }
+      if (matches.length >= 5) break;
+    }
+    return matches;
+  } catch (error) {
+    console.error('Vendor matching could not be completed', error);
+    return [];
+  }
+}
+
 export async function POST(request: NextRequest) {
   let body: PlannerInput;
   try {
@@ -289,7 +422,9 @@ Choose 3 to 7 services, including only what is genuinely useful. Treat the budge
     const plan = normalisePlan(modelValue, budget);
     if (!plan) throw new Error('Invalid model response');
 
-    return NextResponse.json(conversation ? { reply: 'I’ve put together a celebration plan around everything you shared.', ready: true, plan } : { plan });
+    const vendorMatches = await findVendorMatches(plan.services, plan.brief.location || location);
+    const planWithMatches = { ...plan, vendorMatches };
+    return NextResponse.json(conversation ? { reply: 'I’ve put together a celebration plan around everything you shared.', ready: true, plan: planWithMatches } : { plan: planWithMatches });
   } catch (error) {
     console.error('AI planner response could not be processed', error);
     return NextResponse.json({ error: 'We could not make your plan just now. Please try again.' }, { status: 502 });
